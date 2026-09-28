@@ -1,0 +1,512 @@
+{
+  "characteristics": [
+    {
+      "classification": "major",
+      "criterion": "IPC-A-610 acceptance criteria for the declared product class",
+      "description": "SMT solder-joint placement and wetting",
+      "id": "CH-01",
+      "kind": "attribute",
+      "lsl": null,
+      "nominal": null,
+      "sources": [
+        "R001"
+      ],
+      "unit": null,
+      "usl": null
+    },
+    {
+      "classification": "critical",
+      "criterion": "",
+      "description": "Protective-earth bond resistance",
+      "id": "CH-02",
+      "kind": "variable",
+      "lsl": 0.0,
+      "nominal": 0.03,
+      "sources": [
+        "R001"
+      ],
+      "unit": "ohm",
+      "usl": 0.1
+    },
+    {
+      "classification": "major",
+      "criterion": "Firmware image verifies and serial number is unique and readable",
+      "description": "Factory-test programming and serial identity",
+      "id": "CH-03",
+      "kind": "attribute",
+      "lsl": null,
+      "nominal": null,
+      "sources": [
+        "R002"
+      ],
+      "unit": null,
+      "usl": null
+    },
+    {
+      "classification": "minor",
+      "criterion": "All listed accessories and manuals are present; carton is undamaged",
+      "description": "Packaged product and accessory completeness",
+      "id": "CH-04",
+      "kind": "attribute",
+      "lsl": null,
+      "nominal": null,
+      "sources": [
+        "R002"
+      ],
+      "unit": null,
+      "usl": null
+    }
+  ],
+  "factory_test_mode": {
+    "commands": [
+      {
+        "covers": [
+          "CH-03"
+        ],
+        "destructive": false,
+        "id": "TC-01",
+        "measures_nets": [
+          "UART_RX",
+          "UART_TX"
+        ],
+        "name": "board-and-heater-sensor-check",
+        "request": "TEST SENSORS",
+        "response_pattern": "SENSORS PASS",
+        "timeout_ms": 2000
+      },
+      {
+        "covers": [
+          "CH-03"
+        ],
+        "destructive": false,
+        "id": "TC-02",
+        "measures_nets": [
+          "FTM_STRAP"
+        ],
+        "name": "provision-serial-and-calibration",
+        "request": "PROVISION <serial> <calibration>",
+        "response_pattern": "PROVISIONED <serial>",
+        "timeout_ms": 1500
+      }
+    ],
+    "entry": {
+      "conditions": [
+        "FTM_STRAP asserted by the keyed fixture before reset.",
+        "UART magic token PRODENG-FTM-v1 received before the 2-second boot timeout."
+      ],
+      "detail": "A fixture-held strap on FTM_STRAP is sampled only during reset.",
+      "method": "gpio_strap"
+    },
+    "exit": "Issue EXIT, restore the strap, and power-cycle; confirm normal firmware boot.",
+    "field_lockout": {
+      "detail": "Provisioning sets a write-once production-complete NVM flag that disables factory entry.",
+      "method": "nvm_flag"
+    },
+    "interface": {
+      "nets": [
+        "FTM_STRAP",
+        "UART_RX",
+        "UART_TX"
+      ],
+      "settings": "115200 baud, 8 data bits, no parity, 1 stop bit; UTF-8 newline-delimited frames.",
+      "transport": "uart"
+    },
+    "max_duration_s": 6.0,
+    "provisioning": [
+      {
+        "item": "serial_number",
+        "source": "MES-issued unit serial",
+        "write_once": true
+      },
+      {
+        "item": "calibration",
+        "source": "Factory calibration fixture",
+        "write_once": true
+      }
+    ]
+  },
+  "failure_modes": [
+    {
+      "cause": "Loose or missed earth connection",
+      "controls": [
+        "IN-04"
+      ],
+      "detection": 2,
+      "effect": "Electric-shock hazard",
+      "id": "FM-01",
+      "mode": "protective-earth bond open or high resistance",
+      "occurrence": 2,
+      "operation": "OP05",
+      "severity": 10
+    },
+    {
+      "cause": "Incorrect programming image or interrupted provisioning",
+      "controls": [
+        "IN-02"
+      ],
+      "detection": 2,
+      "effect": "Unit cannot be traced or tested",
+      "id": "FM-02",
+      "mode": "wrong firmware or missing serial",
+      "occurrence": 3,
+      "operation": "OP03",
+      "severity": 7
+    }
+  ],
+  "imports": [
+    {
+      "extracted": {
+        "anchors": [],
+        "connectors": [
+          "J1"
+        ],
+        "nets": [
+          "FTM_STRAP",
+          "GND",
+          "UART_RX",
+          "UART_TX"
+        ],
+        "parts": [
+          "J1",
+          "U1"
+        ],
+        "surfaces": []
+      },
+      "kind": "circuit-brief",
+      "path": "upstream/smart-kettle.circuit-brief.json",
+      "sha256": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed",
+      "system": "circuit"
+    }
+  ],
+  "inspections": [
+    {
+      "characteristic": "CH-01",
+      "equipment": "AOI system",
+      "ftm_commands": [],
+      "id": "IN-01",
+      "method": "aoi",
+      "operation": "OP01",
+      "reaction_plan": "Stop the line, contain the affected lot, correct the print or placement cause, and re-inspect.",
+      "sampling": {
+        "aql": 0.65,
+        "level": "II",
+        "mode": "aql"
+      }
+    },
+    {
+      "characteristic": "CH-03",
+      "equipment": "UART programming and functional-test fixture",
+      "ftm_commands": [
+        "TC-01",
+        "TC-02"
+      ],
+      "id": "IN-02",
+      "method": "fct",
+      "operation": "OP03",
+      "reaction_plan": "Hold the unit, preserve the station log, repair or reprogram, then repeat the complete test.",
+      "sampling": {
+        "aql": null,
+        "level": "II",
+        "mode": "full"
+      }
+    },
+    {
+      "characteristic": "CH-02",
+      "equipment": "Interlocked hipot tester",
+      "ftm_commands": [],
+      "id": "IN-03",
+      "method": "hipot",
+      "operation": "OP05",
+      "reaction_plan": "Stop test, discharge safely, quarantine the unit, and investigate insulation or wiring.",
+      "sampling": {
+        "aql": null,
+        "level": "II",
+        "mode": "full"
+      }
+    },
+    {
+      "characteristic": "CH-02",
+      "equipment": "Earth-bond tester",
+      "ftm_commands": [],
+      "id": "IN-04",
+      "method": "ground_bond",
+      "operation": "OP05",
+      "reaction_plan": "Quarantine the unit and inspect the protective-earth path and torque joints.",
+      "sampling": {
+        "aql": null,
+        "level": "II",
+        "mode": "full"
+      }
+    },
+    {
+      "characteristic": "CH-04",
+      "equipment": "Visual inspection station",
+      "ftm_commands": [],
+      "id": "IN-05",
+      "method": "visual",
+      "operation": "OP06",
+      "reaction_plan": "Contain the lot, correct packing errors, and re-inspect affected cartons.",
+      "sampling": {
+        "aql": 1.5,
+        "level": "II",
+        "mode": "aql"
+      }
+    }
+  ],
+  "operations": [
+    {
+      "cycle_time_s": 20.0,
+      "esd_sensitive": true,
+      "fixtures": [
+        "PCB carrier"
+      ],
+      "id": "OP01",
+      "kind": "smt",
+      "name": "SMT assembly",
+      "operators": 1,
+      "safety_hazards": [
+        "hot reflow surfaces"
+      ],
+      "safety_precautions": [
+        "Use thermal gloves for oven service."
+      ],
+      "station": "SMT",
+      "tools": [
+        "stencil printer",
+        "reflow oven"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Verify board revision and stencil alignment."
+          ],
+          "reasons": [
+            "Prevents wrong-revision builds and solder bridging."
+          ],
+          "step": "Load the PCB and apply solder paste."
+        },
+        {
+          "key_points": [
+            "Use the released placement file and qualified thermal profile."
+          ],
+          "reasons": [
+            "Maintains component position and solder-joint integrity."
+          ],
+          "step": "Place components and reflow."
+        }
+      ]
+    },
+    {
+      "cycle_time_s": 18.0,
+      "esd_sensitive": true,
+      "fixtures": [
+        "THT board nest"
+      ],
+      "id": "OP02",
+      "kind": "tht",
+      "name": "THT component soldering",
+      "operators": 1,
+      "safety_hazards": [
+        "hot solder and flux fumes"
+      ],
+      "safety_precautions": [
+        "Keep extraction running and use heat-resistant tools."
+      ],
+      "station": "THT",
+      "tools": [
+        "selective soldering system"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Check polarity and component height before soldering."
+          ],
+          "reasons": [
+            "Ensures correct function and mechanical fit."
+          ],
+          "step": "Insert through-hole components."
+        }
+      ]
+    },
+    {
+      "cycle_time_s": 25.0,
+      "esd_sensitive": true,
+      "fixtures": [
+        "keyed programming nest"
+      ],
+      "id": "OP03",
+      "kind": "programming",
+      "name": "Programming and factory functional test",
+      "operators": 1,
+      "safety_hazards": [],
+      "safety_precautions": [],
+      "station": "PROGRAM-FCT",
+      "tools": [
+        "UART fixture",
+        "programming station"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Assert the strap and present the production UART token."
+          ],
+          "reasons": [
+            "Prevents accidental entry into factory mode in the field."
+          ],
+          "step": "Load the released firmware and enter guarded test mode."
+        },
+        {
+          "key_points": [
+            "Verify responses, write the serial, and confirm lockout."
+          ],
+          "reasons": [
+            "Ensures traceability and prevents field re-entry."
+          ],
+          "step": "Run test commands and provision the unit."
+        }
+      ]
+    },
+    {
+      "cycle_time_s": 32.0,
+      "esd_sensitive": false,
+      "fixtures": [
+        "kettle-body assembly fixture"
+      ],
+      "id": "OP04",
+      "kind": "mechanical_assembly",
+      "name": "Mechanical assembly",
+      "operators": 1,
+      "safety_hazards": [
+        "pinch points at the handle joint"
+      ],
+      "safety_precautions": [
+        "Keep fingers clear of the closing joint."
+      ],
+      "station": "ASSEMBLY",
+      "tools": [
+        "torque driver"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Route wiring away from hot surfaces and moving joints."
+          ],
+          "reasons": [
+            "Avoids insulation damage and pinched conductors."
+          ],
+          "step": "Join the body, handle, base, and control board."
+        }
+      ]
+    },
+    {
+      "cycle_time_s": 20.0,
+      "esd_sensitive": false,
+      "fixtures": [
+        "interlocked safety-test enclosure"
+      ],
+      "id": "OP05",
+      "kind": "test",
+      "name": "Hipot and earth-bond safety tests",
+      "operators": 1,
+      "safety_hazards": [
+        "hazardous test voltage and high test current"
+      ],
+      "safety_precautions": [
+        "Keep the enclosure interlock closed during test.",
+        "Discharge the unit before removal."
+      ],
+      "station": "SAFETY-TEST",
+      "tools": [
+        "hipot tester",
+        "earth-bond tester"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Confirm the interlock and approved test limits before start."
+          ],
+          "reasons": [
+            "Protects the operator and verifies electrical safety."
+          ],
+          "step": "Connect the unit and run hipot and earth-bond tests."
+        },
+        {
+          "key_points": [
+            "Do not release a failed or incomplete safety test."
+          ],
+          "reasons": [
+            "Maintains traceability and prevents unsafe shipment."
+          ],
+          "step": "Record results and quarantine failures."
+        }
+      ]
+    },
+    {
+      "cycle_time_s": 15.0,
+      "esd_sensitive": false,
+      "fixtures": [],
+      "id": "OP06",
+      "kind": "packing",
+      "name": "Final inspection and packing",
+      "operators": 1,
+      "safety_hazards": [],
+      "safety_precautions": [],
+      "station": "PACK",
+      "tools": [
+        "label printer",
+        "carton scale"
+      ],
+      "work_elements": [
+        {
+          "key_points": [
+            "Match the serial label to the production record."
+          ],
+          "reasons": [
+            "Preserves traceability and prevents missing-content escapes."
+          ],
+          "step": "Inspect the finished unit and pack accessories."
+        }
+      ]
+    }
+  ],
+  "product": {
+    "description": "Mains-powered smart kettle with guarded factory test and serial provisioning.",
+    "name": "smart-kettle",
+    "revision": "1.0"
+  },
+  "requirements": [
+    {
+      "id": "R001",
+      "kind": "requirement",
+      "status": "resolved",
+      "text": "The kettle shall meet mains electrical safety requirements."
+    },
+    {
+      "id": "R002",
+      "kind": "requirement",
+      "status": "resolved",
+      "text": "Every unit shall have a unique provisioned serial number."
+    },
+    {
+      "id": "A001",
+      "kind": "assumption",
+      "status": "resolved",
+      "text": "The production line runs one 8-hour shift on 250 working days per year."
+    },
+    {
+      "id": "Q001",
+      "kind": "question",
+      "status": "resolved",
+      "text": "Confirm the final packaging drop-test standard."
+    }
+  ],
+  "schema_version": 1,
+  "system": "prodeng",
+  "volume": {
+    "annual_demand_units": 100000,
+    "available_minutes_per_shift": 480.0,
+    "lot_size": 1000,
+    "shifts_per_day": 1,
+    "working_days_per_year": 250
+  }
+}

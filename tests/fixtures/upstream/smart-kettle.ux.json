@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "system": "ux-creator",
+  "product": {
+    "name": "smart-kettle",
+    "surfaces": [
+      {
+        "id": "kettle_body",
+        "layer": "industrial_design",
+        "name": "kettle body & handle",
+        "notes": ""
+      },
+      {
+        "id": "hardware_button",
+        "layer": "hardware",
+        "name": "single boil button",
+        "notes": ""
+      },
+      {
+        "id": "status_led",
+        "layer": "circuit",
+        "name": "ring status LED",
+        "notes": ""
+      },
+      {
+        "id": "thermostat",
+        "layer": "firmware",
+        "name": "boil/keep-warm controller",
+        "notes": ""
+      },
+      {
+        "id": "buzzer",
+        "layer": "circuit",
+        "name": "piezo beeper",
+        "notes": ""
+      },
+      {
+        "id": "mobile_app",
+        "layer": "smartphone_app",
+        "name": "companion app",
+        "notes": ""
+      }
+    ]
+  },
+  "core_experience": "one press, walk away — hot water that waits for you",
+  "implementation_spec": [
+    "plastic vs steel body",
+    "beep vs chime",
+    "app optional"
+  ],
+  "qcd": {
+    "quality": "high",
+    "cost": "medium",
+    "delivery": "fast",
+    "rationale": "core_experience is the boil job; app features stay optional"
+  },
+  "personas": [
+    {
+      "id": "busy_parent",
+      "name": "",
+      "goals": [
+        "hot water fast",
+        "no watching the kettle"
+      ],
+      "context": "morning rush with kids",
+      "pains": [
+        "forgot boiling water",
+        "scald worry"
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": "boil",
+      "functional": "boil 500 ml of water in under 3 minutes",
+      "emotional": "confidence it will not overflow or be forgotten",
+      "social": "a tidy, quiet kitchen while guests arrive",
+      "importance": 9,
+      "satisfaction": 4
+    },
+    {
+      "id": "keep_warm",
+      "functional": "hold water at 80°C for 30 minutes",
+      "emotional": "trust that a second cup is ready",
+      "social": "hospitality without re-boiling in front of guests",
+      "importance": 6,
+      "satisfaction": 5
+    }
+  ],
+  "journeys": [
+    {
+      "id": "morning",
+      "persona": "",
+      "stages": [
+        {
+          "id": "pair_app",
+          "kind": "onboard",
+          "touchpoints": [
+            "app_pairing"
+          ],
+          "emotion": 3,
+          "pain_points": [
+            "pairing needs account"
+          ],
+          "surfaces": [
+            "mobile_app"
+          ],
+          "jobs": []
+        },
+        {
+          "id": "fill",
+          "kind": "use",
+          "touchpoints": [
+            "lid",
+            "handle",
+            "spout"
+          ],
+          "emotion": 3,
+          "pain_points": [
+            "lid hinge pinches fingers"
+          ],
+          "surfaces": [
+            "kettle_body"
+          ],
+          "jobs": [
+            "boil"
+          ]
+        },
+        {
+          "id": "boil",
+          "kind": "use",
+          "touchpoints": [
+            "button",
+            "led",
+            "beep"
+          ],
+          "emotion": 4,
+          "pain_points": [],
+          "surfaces": [
+            "hardware_button",
+            "status_led"
+          ],
+          "jobs": [
+            "boil"
+          ]
+        },
+        {
+          "id": "pour",
+          "kind": "use",
+          "touchpoints": [
+            "handle",
+            "spout"
+          ],
+          "emotion": 5,
+          "pain_points": [],
+          "surfaces": [
+            "kettle_body"
+          ],
+          "jobs": [
+            "boil"
+          ]
+        },
+        {
+          "id": "forgot",
+          "kind": "use",
+          "touchpoints": [
+            "app_notification"
+          ],
+          "emotion": 2,
+          "pain_points": [
+            "no reminder when water cools"
+          ],
+          "surfaces": [
+            "mobile_app"
+          ],
+          "jobs": [
+            "keep_warm"
+          ]
+        }
+      ]
+    }
+  ],
+  "service_blueprint": {
+    "frontstage": [
+      "button_press",
+      "led_feedback",
+      "beep"
+    ],
+    "backstage": [
+      "thermostat_control",
+      "boil_detection"
+    ],
+    "support_processes": [
+      "firmware_update_service"
+    ]
+  },
+  "statecharts": [
+    {
+      "id": "power",
+      "states": [
+        {
+          "id": "idle",
+          "initial": true,
+          "final": false,
+          "description": "kettle idle, LED off",
+          "surface": "hardware_button",
+          "entry": [],
+          "exit": []
+        },
+        {
+          "id": "heating",
+          "initial": false,
+          "final": false,
+          "description": "water heating, LED pulsing",
+          "surface": "status_led",
+          "entry": [
+            "led_pulse"
+          ],
+          "exit": []
+        },
+        {
+          "id": "keep_warm",
+          "initial": false,
+          "final": false,
+          "description": "holding temperature, LED steady",
+          "surface": "status_led",
+          "entry": [],
+          "exit": []
+        },
+        {
+          "id": "done",
+          "initial": false,
+          "final": true,
+          "description": "",
+          "surface": "",
+          "entry": [],
+          "exit": []
+        }
+      ],
+      "transitions": [
+        {
+          "from": "idle",
+          "event": "press",
+          "to": "heating",
+          "guard": "",
+          "actions": []
+        },
+        {
+          "from": "heating",
+          "event": "boiled",
+          "to": "done",
+          "guard": "temp >= 100",
+          "actions": [
+            "beep"
+          ]
+        },
+        {
+          "from": "heating",
+          "event": "boiled",
+          "to": "keep_warm",
+          "guard": "keep_warm_armed",
+          "actions": []
+        },
+        {
+          "from": "heating",
+          "event": "keep_warm_selected",
+          "to": "keep_warm",
+          "guard": "",
+          "actions": []
+        },
+        {
+          "from": "keep_warm",
+          "event": "timeout",
+          "to": "idle",
+          "guard": "",
+          "actions": []
+        },
+        {
+          "from": "done",
+          "event": "lifted",
+          "to": "idle",
+          "guard": "",
+          "actions": []
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "boil_button",
+      "surface": "hardware_button",
+      "kind": "button",
+      "touchpoint": "button",
+      "width_mm": 14,
+      "height_mm": 14,
+      "fg": "",
+      "bg": "",
+      "large_text": false
+    },
+    {
+      "id": "app_boil_tap",
+      "surface": "mobile_app",
+      "kind": "touch",
+      "touchpoint": "app_pairing",
+      "width_mm": 9,
+      "height_mm": 9,
+      "fg": "#FFFFFF",
+      "bg": "#0057D9",
+      "large_text": false
+    }
+  ],
+  "feedback": [
+    {
+      "id": "led_boiling",
+      "trigger": "press",
+      "surface": "status_led",
+      "modality": "visual",
+      "latency_ms": 50,
+      "progress_indicator": false,
+      "description": "LED starts pulsing within one blink of the press"
+    },
+    {
+      "id": "beep_done",
+      "trigger": "boiled",
+      "surface": "buzzer",
+      "modality": "audio",
+      "latency_ms": 100,
+      "progress_indicator": false,
+      "description": "two-tone done chime at boil detection"
+    },
+    {
+      "id": "app_reminder",
+      "trigger": "app_notification",
+      "surface": "mobile_app",
+      "modality": "text",
+      "latency_ms": 3000,
+      "progress_indicator": true,
+      "description": "push card counts down cooling time"
+    }
+  ],
+  "loops": [
+    {
+      "id": "morning_brew",
+      "steps": [
+        "press",
+        "boiled",
+        "lifted"
+      ],
+      "reward": "hot water without waiting",
+      "cadence": "daily"
+    }
+  ],
+  "imports": []
+}

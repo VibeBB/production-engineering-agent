@@ -1,0 +1,59 @@
+{
+  "name": "smart_kettle_control_board",
+  "description": "Control-board connectivity for guarded factory test",
+  "parts": [
+    {
+      "reference": "J1",
+      "lib_id": "Connector_Generic:Conn_01x04",
+      "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "connector": true,
+      "housing": "B4B-XH-A",
+      "rated_current_a": 1.0,
+      "rated_voltage_v": 250.0
+    },
+    {
+      "reference": "U1",
+      "lib_id": "MCU_Microchip:ATmega328P",
+      "footprint": "Package_DIP:DIP-28_W7.62mm",
+      "connector": false
+    }
+  ],
+  "nets": [
+    {
+      "name": "FTM_STRAP",
+      "pins": ["J1.1", "U1.1"],
+      "signal_class": "digital",
+      "voltage_v": 3.3,
+      "current_a": 0.01
+    },
+    {
+      "name": "UART_TX",
+      "pins": ["J1.2", "U1.2"],
+      "signal_class": "digital",
+      "voltage_v": 3.3,
+      "current_a": 0.01
+    },
+    {
+      "name": "UART_RX",
+      "pins": ["J1.3", "U1.3"],
+      "signal_class": "digital",
+      "voltage_v": 3.3,
+      "current_a": 0.01
+    },
+    {
+      "name": "GND",
+      "pins": ["J1.4", "U1.4"],
+      "signal_class": "power",
+      "voltage_v": 0.0,
+      "current_a": 0.1
+    }
+  ],
+  "board": {
+    "width_mm": 50,
+    "height_mm": 35,
+    "placements": {
+      "J1": {"x_mm": 5, "y_mm": 18},
+      "U1": {"x_mm": 25, "y_mm": 18}
+    }
+  }
+}

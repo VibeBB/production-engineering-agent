@@ -1,0 +1,13 @@
+{
+  "cites": [],
+  "rationale": "Typeset and control the manufacturing work instructions and QC control plan.",
+  "requested_changes": [
+    "Create controlled work instructions from the operation TWI major-step, key-point, and reason tables.",
+    "Typeset the inspection/control plan with reaction plans and sampling criteria."
+  ],
+  "risk": "low",
+  "schema_version": 1,
+  "system": "prodeng",
+  "target_agent": "document",
+  "topic": "work-instructions"
+}

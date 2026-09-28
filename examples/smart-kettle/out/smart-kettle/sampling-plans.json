@@ -1,0 +1,26 @@
+[
+  {
+    "accept": 1,
+    "aql": 0.65,
+    "code_letter": "J",
+    "full_inspection": false,
+    "inspection": "IN-01",
+    "level": "II",
+    "mode": "aql",
+    "reject": 2,
+    "sample_size": 80,
+    "table_letter": "J"
+  },
+  {
+    "accept": 3,
+    "aql": 1.5,
+    "code_letter": "J",
+    "full_inspection": false,
+    "inspection": "IN-05",
+    "level": "II",
+    "mode": "aql",
+    "reject": 4,
+    "sample_size": 80,
+    "table_letter": "J"
+  }
+]
