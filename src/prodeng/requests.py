@@ -14,6 +14,10 @@ from .gates import GateReport
 TARGET_AGENTS = ("circuit", "firmware", "mech", "wire", "ux", "document", "bard")
 
 
+def _strip_terminal_period(value: str) -> str:
+    return value.rstrip().rstrip(".")
+
+
 class ProdengRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -88,10 +92,12 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
             inspection.id for inspection in contract.inspections if inspection.method == "fct"
         )
         command_lines = [
-            f"{command.id}: {command.request} -> {command.response_pattern} "
+            f"{command.id}: {_strip_terminal_period(command.request)} -> "
+            f"{_strip_terminal_period(command.response_pattern)} "
             f"(timeout {command.timeout_ms} ms)"
             for command in sorted(ftm.commands, key=lambda item: item.id)
         ]
+        interface_nets = sorted(_strip_terminal_period(net) for net in ftm.interface.nets)
         derived.append(
             build_request(
                 contract,
@@ -104,18 +110,22 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
                 ),
                 cites=_high_risk_cites(contract, cited),
                 requested_changes=[
-                    f"Entry: {ftm.entry.method}; {ftm.entry.detail}; "
-                    f"conditions: {'; '.join(ftm.entry.conditions)}.",
-                    f"Field lockout: {ftm.field_lockout.method}; {ftm.field_lockout.detail}.",
-                    f"Interface: {ftm.interface.transport}; {ftm.interface.settings}; "
-                    f"nets: {', '.join(sorted(ftm.interface.nets)) or 'none'}.",
+                    f"Entry: {ftm.entry.method}; {_strip_terminal_period(ftm.entry.detail)}; "
+                    "conditions: "
+                    f"{'; '.join(_strip_terminal_period(item) for item in ftm.entry.conditions)}.",
+                    f"Field lockout: {ftm.field_lockout.method}; "
+                    f"{_strip_terminal_period(ftm.field_lockout.detail)}.",
+                    f"Interface: {ftm.interface.transport}; "
+                    f"{_strip_terminal_period(ftm.interface.settings)}; "
+                    f"nets: {', '.join(interface_nets) or 'none'}.",
                     *command_lines,
                     *[
-                        f"Provision {item.item} from {item.source}; "
+                        f"Provision {_strip_terminal_period(item.item)} from "
+                        f"{_strip_terminal_period(item.source)}; "
                         f"write_once={str(item.write_once).lower()}."
                         for item in ftm.provisioning
                     ],
-                    f"Exit: {ftm.exit}.",
+                    f"Exit: {_strip_terminal_period(ftm.exit)}.",
                     f"Total command timeout budget: "
                     f"{sum(item.timeout_ms for item in ftm.commands) / 1000:g} s; "
                     f"maximum: {ftm.max_duration_s:g} s.",
@@ -135,8 +145,12 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
         if ftm is not None:
             cites.update(command.covers[0] for command in ftm.commands if command.covers)
         nets = sorted(
-            set(ftm.interface.nets if ftm else ())
-            | {net for command in ftm.commands for net in command.measures_nets}
+            {_strip_terminal_period(net) for net in ftm.interface.nets}
+            | {
+                _strip_terminal_period(net)
+                for command in ftm.commands
+                for net in command.measures_nets
+            }
             if ftm
             else set()
         )

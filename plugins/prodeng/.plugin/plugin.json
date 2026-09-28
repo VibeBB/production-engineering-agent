@@ -1,0 +1,12 @@
+{
+  "name": "prodeng",
+  "version": "0.1.0",
+  "description": "Deterministic production-engineering plans, gates, projections, and sibling requests",
+  "author": {
+    "name": "VibeBB",
+    "url": "https://github.com/VibeBB/production-engineering-agent"
+  },
+  "license": "BSD-3-Clause",
+  "repository": "https://github.com/VibeBB/production-engineering-agent",
+  "entry_command": "doctor"
+}

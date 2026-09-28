@@ -1,7 +1,7 @@
 station,operation_ids,operations,cycle_time_s,takt_s,utilization,operators_by_operation
-ASSEMBLY,OP04,Mechanical assembly,32,72,0.444444,1
-PACK,OP06,Final inspection and packing,15,72,0.208333,1
-PROGRAM-FCT,OP03,Programming and factory functional test,25,72,0.347222,1
-SAFETY-TEST,OP05,Hipot and earth-bond safety tests,20,72,0.277778,1
 SMT,OP01,SMT assembly,20,72,0.277778,1
 THT,OP02,THT component soldering,18,72,0.250000,1
+PROGRAM-FCT,OP03,Programming and factory functional test,25,72,0.347222,1
+ASSEMBLY,OP04,Mechanical assembly,32,72,0.444444,1
+SAFETY-TEST,OP05,Hipot and earth-bond safety tests,20,72,0.277778,1
+PACK,OP06,Final inspection and packing,15,72,0.208333,1

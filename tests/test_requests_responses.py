@@ -73,6 +73,48 @@ def test_high_risk_request_requires_a_declared_citation() -> None:
         )
 
 
+def test_factory_test_request_normalizes_terminal_periods() -> None:
+    payload = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    ftm = payload["factory_test_mode"]
+    ftm["entry"]["detail"] += "."
+    ftm["entry"]["conditions"] = [f"{condition}." for condition in ftm["entry"]["conditions"]]
+    ftm["field_lockout"]["detail"] += "."
+    ftm["commands"][0]["request"] += "."
+    ftm["commands"][0]["response_pattern"] += "."
+    ftm["provisioning"][0]["source"] += "."
+    ftm["exit"] += "."
+    ftm["interface"]["nets"] = [f"{net}." for net in ftm["interface"]["nets"]]
+    contract = ProdengContract.model_validate(payload)
+    gates = run_gates(contract, EXAMPLE.parent)
+    requests = derive_requests(contract, gates)
+    firmware = next(
+        request
+        for request in requests
+        if request.target_agent == "firmware" and request.topic == "factory-test-mode"
+    )
+    circuit = next(
+        request
+        for request in requests
+        if request.target_agent == "circuit" and request.topic == "test-access"
+    )
+    assert firmware.requested_changes[0].endswith("boot timeout.")
+    assert firmware.requested_changes[1].endswith("factory entry.")
+    assert firmware.requested_changes[3] == (
+        "TC-01: TEST SENSORS -> SENSORS PASS (timeout 2000 ms)"
+    )
+    assert firmware.requested_changes[5] == (
+        "Provision serial_number from MES-issued unit serial; write_once=true."
+    )
+    assert firmware.requested_changes[-2].endswith("power-cycle; confirm normal firmware boot.")
+    assert circuit.requested_changes[0] == (
+        "Provide test access for nets: FTM_STRAP, UART_RX, UART_TX"
+    )
+    assert all(
+        ".." not in change and ".;" not in change
+        for change in firmware.requested_changes + circuit.requested_changes
+    )
+
+
 def test_liaison_open_answered_mismatched_orphan_and_malformed(tmp_path: Path) -> None:
     target = "firmware"
     request = build_request(

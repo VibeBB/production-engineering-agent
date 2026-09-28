@@ -16,7 +16,7 @@
     },
     {
       "classification": "critical",
-      "criterion": "",
+      "criterion": "Maximum resistance from the protective-earth terminal to accessible earthed metalwork.",
       "description": "Protective-earth bond resistance",
       "id": "CH-02",
       "kind": "variable",
@@ -55,6 +55,20 @@
       ],
       "unit": null,
       "usl": null
+    },
+    {
+      "classification": "critical",
+      "criterion": "Example control limit: leakage current <=5.0 mA at the 1.5 kVAC routine electric-strength test voltage; confirm both against the product certification procedure.",
+      "description": "Dielectric withstand leakage current",
+      "id": "CH-05",
+      "kind": "variable",
+      "lsl": 0.0,
+      "nominal": 0.0,
+      "sources": [
+        "R003"
+      ],
+      "unit": "mA",
+      "usl": 5.0
     }
   ],
   "factory_test_mode": {
@@ -211,7 +225,7 @@
       }
     },
     {
-      "characteristic": "CH-02",
+      "characteristic": "CH-05",
       "equipment": "Interlocked hipot tester",
       "ftm_commands": [],
       "id": "IN-03",
@@ -486,6 +500,12 @@
       "kind": "requirement",
       "status": "resolved",
       "text": "Every unit shall have a unique provisioned serial number."
+    },
+    {
+      "id": "R003",
+      "kind": "requirement",
+      "status": "resolved",
+      "text": "Perform a 100% routine electric-strength test per IEC 60335-1 Annex A using the product certification procedure; the example planning values are 1.5 kVAC and a 5.0 mA maximum leakage current."
     },
     {
       "id": "A001",

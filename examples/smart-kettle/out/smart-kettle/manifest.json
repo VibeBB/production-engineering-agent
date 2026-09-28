@@ -7,6 +7,7 @@
     "inspection-plan.json",
     "line-balance.csv",
     "pfmea.csv",
+    "provenance.json",
     "sampling-plans.json",
     "work-instructions.md"
   ],

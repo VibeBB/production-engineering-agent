@@ -44,7 +44,7 @@
     }
   },
   {
-    "characteristic_id": "CH-02",
+    "characteristic_id": "CH-05",
     "equipment": "Interlocked hipot tester",
     "ftm_commands": [],
     "inspection_id": "IN-03",

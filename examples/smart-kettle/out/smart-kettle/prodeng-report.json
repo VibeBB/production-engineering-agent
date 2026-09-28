@@ -1,15 +1,15 @@
 {
   "counts": {
-    "characteristics": 4,
+    "characteristics": 5,
     "failure_modes": 2,
     "gate_checks": {
       "fail": 0,
-      "pass": 39,
+      "pass": 41,
       "unknown": 0
     },
     "inspections": 5,
     "operations": 6,
-    "requirements": 4
+    "requirements": 5
   },
   "gates": {
     "checks": [
@@ -25,7 +25,7 @@
         "detail": "inspection coverage present",
         "id": "coverage.characteristic",
         "limit": ">=1",
-        "measured": 2,
+        "measured": 1,
         "status": "pass",
         "subject": "CH-02"
       },
@@ -33,7 +33,7 @@
         "detail": "full inspection present",
         "id": "coverage.critical_full",
         "limit": ">=1",
-        "measured": 2,
+        "measured": 1,
         "status": "pass",
         "subject": "CH-02"
       },
@@ -52,6 +52,22 @@
         "measured": 1,
         "status": "pass",
         "subject": "CH-04"
+      },
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-05"
+      },
+      {
+        "detail": "full inspection present",
+        "id": "coverage.critical_full",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-05"
       },
       {
         "detail": "J, Ac 1, Re 2",

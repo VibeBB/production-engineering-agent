@@ -9,10 +9,12 @@ Takt: 72.000 s/unit
 | Check | Subject | Status | Measured | Limit | Detail |
 | --- | --- | --- | --- | --- | --- |
 | coverage.characteristic | CH-01 | pass | 1 | >=1 | inspection coverage present |
-| coverage.characteristic | CH-02 | pass | 2 | >=1 | inspection coverage present |
-| coverage.critical_full | CH-02 | pass | 2 | >=1 | full inspection present |
+| coverage.characteristic | CH-02 | pass | 1 | >=1 | inspection coverage present |
+| coverage.critical_full | CH-02 | pass | 1 | >=1 | full inspection present |
 | coverage.characteristic | CH-03 | pass | 1 | >=1 | inspection coverage present |
 | coverage.characteristic | CH-04 | pass | 1 | >=1 | inspection coverage present |
+| coverage.characteristic | CH-05 | pass | 1 | >=1 | inspection coverage present |
+| coverage.critical_full | CH-05 | pass | 1 | >=1 | full inspection present |
 | sampling.plan | IN-01 | pass | 80 | 1000 | J, Ac 1, Re 2 |
 | sampling.plan | IN-05 | pass | 80 | 1000 | J, Ac 3, Re 4 |
 | takt.station | ASSEMBLY | pass | 32.0 | 72.0 | station total compared with takt |

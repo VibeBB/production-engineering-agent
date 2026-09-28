@@ -78,7 +78,7 @@ Fixtures: interlocked safety-test enclosure
 ESD: not designated
 Safety hazards: hazardous test voltage and high test current
 Safety precautions: Keep the enclosure interlock closed during test., Discharge the unit before removal.
-Linked inspections: IN-03 (hipot, CH-02); IN-04 (ground_bond, CH-02)
+Linked inspections: IN-03 (hipot, CH-05); IN-04 (ground_bond, CH-02)
 
 | Major step | Key points | Reasons |
 | --- | --- | --- |

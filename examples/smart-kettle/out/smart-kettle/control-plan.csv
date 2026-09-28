@@ -1,6 +1,6 @@
 characteristic_id,characteristic,classification,operation_id,operation,method,sampling_mode,aql,level,equipment,reaction_plan
 CH-01,SMT solder-joint placement and wetting,major,OP01,SMT assembly,aoi,aql,0.65,II,AOI system,"Stop the line, contain the affected lot, correct the print or placement cause, and re-inspect."
 CH-03,Factory-test programming and serial identity,major,OP03,Programming and factory functional test,fct,full,,II,UART programming and functional-test fixture,"Hold the unit, preserve the station log, repair or reprogram, then repeat the complete test."
-CH-02,Protective-earth bond resistance,critical,OP05,Hipot and earth-bond safety tests,hipot,full,,II,Interlocked hipot tester,"Stop test, discharge safely, quarantine the unit, and investigate insulation or wiring."
+CH-05,Dielectric withstand leakage current,critical,OP05,Hipot and earth-bond safety tests,hipot,full,,II,Interlocked hipot tester,"Stop test, discharge safely, quarantine the unit, and investigate insulation or wiring."
 CH-02,Protective-earth bond resistance,critical,OP05,Hipot and earth-bond safety tests,ground_bond,full,,II,Earth-bond tester,Quarantine the unit and inspect the protective-earth path and torque joints.
 CH-04,Packaged product and accessory completeness,minor,OP06,Final inspection and packing,visual,aql,1.5,II,Visual inspection station,"Contain the lot, correct packing errors, and re-inspect affected cartons."

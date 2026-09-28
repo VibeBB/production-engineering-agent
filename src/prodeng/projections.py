@@ -136,7 +136,10 @@ def _write_line_balance(contract: ProdengContract, path: Path) -> None:
     for operation in contract.operations:
         stations.setdefault(operation.station, []).append(operation)
     rows: list[list[str]] = []
-    for station, operations in sorted(stations.items()):
+    for station, operations in sorted(
+        stations.items(),
+        key=lambda item: min(operation.id for operation in item[1]),
+    ):
         cycle_times = [operation.cycle_time_s for operation in operations]
         total = (
             sum(value for value in cycle_times if value is not None)
@@ -376,8 +379,7 @@ def _write_manifest(contract: ProdengContract, out_dir: Path, name: str) -> None
         path.name
         for path in out_dir.iterdir()
         if path.is_file()
-        and path.name
-        not in ("manifest.json", "provenance.json", "prodeng-report.json", "prodeng-report.md")
+        and path.name not in ("manifest.json", "prodeng-report.json", "prodeng-report.md")
     )
     _json_write(
         out_dir / "manifest.json",
@@ -425,8 +427,8 @@ def write_projections(contract: ProdengContract, name: str, out_dir: Path) -> di
     work_path = out_dir / "work-instructions.md"
     _write_work_instructions(contract, work_path)
     _write_ftm(contract, out_dir)
-    _write_manifest(contract, out_dir, name)
     provenance_path = write_provenance(contract, out_dir)
+    _write_manifest(contract, out_dir, name)
     return {
         "control_plan": control_path,
         "inspection_plan": out_dir / "inspection-plan.json",

@@ -178,7 +178,9 @@ UNKNOWN_CASES: list[tuple[Mutation, str, str]] = [
         "missing.json",
     ),
     (
-        lambda data: data["requirements"][3].update(status="open"),
+        lambda data: next(item for item in data["requirements"] if item["id"] == "Q001").update(
+            status="open"
+        ),
         "requirements.open_questions",
         "Q001",
     ),

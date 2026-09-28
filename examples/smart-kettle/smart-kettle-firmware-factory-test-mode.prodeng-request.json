@@ -5,14 +5,14 @@
   ],
   "rationale": "Implement the guarded factory test mode, field lockout, and bounded command protocol.",
   "requested_changes": [
-    "Entry: gpio_strap; A fixture-held strap on FTM_STRAP is sampled only during reset.; conditions: FTM_STRAP asserted by the keyed fixture before reset.; UART magic token PRODENG-FTM-v1 received before the 2-second boot timeout..",
-    "Field lockout: nvm_flag; Provisioning sets a write-once production-complete NVM flag that disables factory entry..",
-    "Interface: uart; 115200 baud, 8 data bits, no parity, 1 stop bit; UTF-8 newline-delimited frames.; nets: FTM_STRAP, UART_RX, UART_TX.",
+    "Entry: gpio_strap; A fixture-held strap on FTM_STRAP is sampled only during reset; conditions: FTM_STRAP asserted by the keyed fixture before reset; UART magic token PRODENG-FTM-v1 received before the 2-second boot timeout.",
+    "Field lockout: nvm_flag; Provisioning sets a write-once production-complete NVM flag that disables factory entry.",
+    "Interface: uart; 115200 baud, 8 data bits, no parity, 1 stop bit; UTF-8 newline-delimited frames; nets: FTM_STRAP, UART_RX, UART_TX.",
     "TC-01: TEST SENSORS -> SENSORS PASS (timeout 2000 ms)",
     "TC-02: PROVISION <serial> <calibration> -> PROVISIONED <serial> (timeout 1500 ms)",
     "Provision serial_number from MES-issued unit serial; write_once=true.",
     "Provision calibration from Factory calibration fixture; write_once=true.",
-    "Exit: Issue EXIT, restore the strap, and power-cycle; confirm normal firmware boot..",
+    "Exit: Issue EXIT, restore the strap, and power-cycle; confirm normal firmware boot.",
     "Total command timeout budget: 3.5 s; maximum: 6 s."
   ],
   "risk": "high",
