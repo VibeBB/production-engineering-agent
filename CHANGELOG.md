@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Add executable module entrypoints for the CLI and MCP server.
+
 ## 0.1.0 — 2026-09-28
 
 - Add deterministic production-engineering contract, gates, sampling,
