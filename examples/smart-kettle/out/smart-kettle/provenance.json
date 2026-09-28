@@ -1,0 +1,29 @@
+{
+  "contract_sha256": "a1d6488cae8a5e90d668c5e128b98c75d9dfaac883347ab454a7bdc3b42e6234",
+  "imports": [
+    {
+      "extracted": {
+        "anchors": [],
+        "connectors": [
+          "J1"
+        ],
+        "nets": [
+          "FTM_STRAP",
+          "GND",
+          "UART_RX",
+          "UART_TX"
+        ],
+        "parts": [
+          "J1",
+          "U1"
+        ],
+        "surfaces": []
+      },
+      "kind": "circuit-brief",
+      "path": "upstream/smart-kettle.circuit-brief.json",
+      "sha256": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed",
+      "system": "circuit"
+    }
+  ],
+  "system": "prodeng"
+}

@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"
+  # uv updates are reported by check-dependency-updates.yml so candidates
+  # can be checked against [tool.uv] required-version before changing the pin.

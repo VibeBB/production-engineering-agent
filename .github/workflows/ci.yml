@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Superseded pull_request runs are cancelled; main pushes and dispatched
+  # runs are never cancelled so in-flight main verification always lands.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      docker: ${{ steps.scope.outputs.docker }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_SHA:-}" ] || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ]; then
+            echo "docker=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
+          if grep -Eq '^(docker/|\.dockerignore$)' "$RUNNER_TEMP/changed-files"; then
+            echo "docker=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docker=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          # The 3.12 and 3.13 matrix legs save uv caches concurrently; a
+          # distinct suffix per leg avoids "Unable to reserve cache" races.
+          cache-suffix: verify-${{ matrix.python-version }}
+      - name: Sync dependencies
+        run: uv sync --locked
+      - name: Verify fast stage
+        run: uv run python scripts/verify_all.py --stage fast
+
+  e2e:
+    needs: changes
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+          cache-suffix: e2e
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Sync dependencies
+        run: uv sync --locked
+      # The e2e needs the image under test: rebuild it when docker/ changed
+      # or when no lock entry exists yet (first-publish chicken-and-egg);
+      # otherwise run_in_locked_image.py pulls the published digest-locked
+      # image — a ~3 minute saving on non-docker changes.
+      - name: Resolve e2e image source
+        id: image
+        env:
+          DOCKER_CHANGED: ${{ needs.changes.outputs.docker }}
+        run: |
+          set -euo pipefail
+          build=false
+          if [ "$DOCKER_CHANGED" = "true" ]; then
+            build=true
+          elif ! python3 -c "import json; json.load(open('docker/image-digests.json', encoding='utf-8'))['prodeng_tools']" 2>/dev/null; then
+            build=true
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+      - name: Build prodeng-tools image for e2e
+        if: steps.image.outputs.build == 'true'
+        run: >-
+          docker buildx build --load
+          -f docker/prodeng-tools.Dockerfile -t prodeng-tools:ci
+          --cache-from type=gha,scope=prodeng-tools
+          --cache-to type=gha,mode=max,scope=prodeng-tools,ignore-error=true
+          .
+      - name: Author example contract end to end (inside image)
+        env:
+          PRODENG_TOOLS_IMAGE: ${{ steps.image.outputs.build == 'true' && 'prodeng-tools:ci' || '' }}
+        run: |
+          uv run python scripts/run_in_locked_image.py -- \
+            python scripts/e2e_authoring.py \
+            --contract examples/smart-kettle/smart-kettle.prodeng.json \
+            --out out/ci/smart-kettle
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prodeng-smart-kettle
+          path: out/ci
+          retention-days: 14
+
+  plugin-load:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+          cache-suffix: plugin-load
+      - name: Sync dependencies
+        run: uv sync --locked --group sdk-check
+      - name: Check plugin loads via SDK
+        run: uv run --group sdk-check python scripts/check_plugin_load.py

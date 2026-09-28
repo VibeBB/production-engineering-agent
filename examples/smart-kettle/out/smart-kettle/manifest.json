@@ -1,0 +1,18 @@
+{
+  "artifact_stem": "smart-kettle",
+  "files": [
+    "control-plan.csv",
+    "factory-test-spec.json",
+    "factory-test-spec.md",
+    "inspection-plan.json",
+    "line-balance.csv",
+    "pfmea.csv",
+    "provenance.json",
+    "sampling-plans.json",
+    "work-instructions.md"
+  ],
+  "product": "smart-kettle",
+  "revision": "1.0",
+  "schema_version": 1,
+  "system": "prodeng"
+}

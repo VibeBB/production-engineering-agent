@@ -1,0 +1,107 @@
+[
+  {
+    "characteristic_id": "CH-01",
+    "equipment": "AOI system",
+    "ftm_commands": [],
+    "inspection_id": "IN-01",
+    "method": "aoi",
+    "operation_id": "OP01",
+    "reaction_plan": "Stop the line, contain the affected lot, correct the print or placement cause, and re-inspect.",
+    "sampling": {
+      "accept": 1,
+      "aql": 0.65,
+      "code_letter": "J",
+      "full_inspection": false,
+      "inspection": "IN-01",
+      "level": "II",
+      "mode": "aql",
+      "reject": 2,
+      "sample_size": 80,
+      "table_letter": "J"
+    }
+  },
+  {
+    "characteristic_id": "CH-03",
+    "equipment": "UART programming and functional-test fixture",
+    "ftm_commands": [
+      "TC-01",
+      "TC-02"
+    ],
+    "inspection_id": "IN-02",
+    "method": "fct",
+    "operation_id": "OP03",
+    "reaction_plan": "Hold the unit, preserve the station log, repair or reprogram, then repeat the complete test.",
+    "sampling": {
+      "accept": 0,
+      "aql": null,
+      "code_letter": null,
+      "full_inspection": true,
+      "inspection": "IN-02",
+      "level": "II",
+      "mode": "full",
+      "reject": 1,
+      "sample_size": 1000
+    }
+  },
+  {
+    "characteristic_id": "CH-05",
+    "equipment": "Interlocked hipot tester",
+    "ftm_commands": [],
+    "inspection_id": "IN-03",
+    "method": "hipot",
+    "operation_id": "OP05",
+    "reaction_plan": "Stop test, discharge safely, quarantine the unit, and investigate insulation or wiring.",
+    "sampling": {
+      "accept": 0,
+      "aql": null,
+      "code_letter": null,
+      "full_inspection": true,
+      "inspection": "IN-03",
+      "level": "II",
+      "mode": "full",
+      "reject": 1,
+      "sample_size": 1000
+    }
+  },
+  {
+    "characteristic_id": "CH-02",
+    "equipment": "Earth-bond tester",
+    "ftm_commands": [],
+    "inspection_id": "IN-04",
+    "method": "ground_bond",
+    "operation_id": "OP05",
+    "reaction_plan": "Quarantine the unit and inspect the protective-earth path and torque joints.",
+    "sampling": {
+      "accept": 0,
+      "aql": null,
+      "code_letter": null,
+      "full_inspection": true,
+      "inspection": "IN-04",
+      "level": "II",
+      "mode": "full",
+      "reject": 1,
+      "sample_size": 1000
+    }
+  },
+  {
+    "characteristic_id": "CH-04",
+    "equipment": "Visual inspection station",
+    "ftm_commands": [],
+    "inspection_id": "IN-05",
+    "method": "visual",
+    "operation_id": "OP06",
+    "reaction_plan": "Contain the lot, correct packing errors, and re-inspect affected cartons.",
+    "sampling": {
+      "accept": 3,
+      "aql": 1.5,
+      "code_letter": "J",
+      "full_inspection": false,
+      "inspection": "IN-05",
+      "level": "II",
+      "mode": "aql",
+      "reject": 4,
+      "sample_size": 80,
+      "table_letter": "J"
+    }
+  }
+]

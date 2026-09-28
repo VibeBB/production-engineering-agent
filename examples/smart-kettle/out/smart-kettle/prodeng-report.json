@@ -1,0 +1,370 @@
+{
+  "counts": {
+    "characteristics": 5,
+    "failure_modes": 2,
+    "gate_checks": {
+      "fail": 0,
+      "pass": 41,
+      "unknown": 0
+    },
+    "inspections": 5,
+    "operations": 6,
+    "requirements": 5
+  },
+  "gates": {
+    "checks": [
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-01"
+      },
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-02"
+      },
+      {
+        "detail": "full inspection present",
+        "id": "coverage.critical_full",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-02"
+      },
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-03"
+      },
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-04"
+      },
+      {
+        "detail": "inspection coverage present",
+        "id": "coverage.characteristic",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-05"
+      },
+      {
+        "detail": "full inspection present",
+        "id": "coverage.critical_full",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "CH-05"
+      },
+      {
+        "detail": "J, Ac 1, Re 2",
+        "id": "sampling.plan",
+        "limit": 1000,
+        "measured": 80,
+        "status": "pass",
+        "subject": "IN-01"
+      },
+      {
+        "detail": "J, Ac 3, Re 4",
+        "id": "sampling.plan",
+        "limit": 1000,
+        "measured": 80,
+        "status": "pass",
+        "subject": "IN-05"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 32.0,
+        "status": "pass",
+        "subject": "ASSEMBLY"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 15.0,
+        "status": "pass",
+        "subject": "PACK"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 25.0,
+        "status": "pass",
+        "subject": "PROGRAM-FCT"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 20.0,
+        "status": "pass",
+        "subject": "SAFETY-TEST"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 20.0,
+        "status": "pass",
+        "subject": "SMT"
+      },
+      {
+        "detail": "station total compared with takt",
+        "id": "takt.station",
+        "limit": 72.0,
+        "measured": 18.0,
+        "status": "pass",
+        "subject": "THT"
+      },
+      {
+        "detail": "FCT inspection requires a declared factory-test mode",
+        "id": "ftm.present",
+        "limit": "factory_test_mode required",
+        "measured": "declared",
+        "status": "pass",
+        "subject": "smart-kettle"
+      },
+      {
+        "detail": "entry conditions",
+        "id": "ftm.entry_guard",
+        "limit": ">=2",
+        "measured": 2,
+        "status": "pass",
+        "subject": "smart-kettle"
+      },
+      {
+        "detail": "Provisioning sets a write-once production-complete NVM flag that disables factory entry.",
+        "id": "ftm.lockout",
+        "limit": "not none",
+        "measured": "nvm_flag",
+        "status": "pass",
+        "subject": "smart-kettle"
+      },
+      {
+        "detail": "sum of command timeouts",
+        "id": "ftm.duration",
+        "limit": 6.0,
+        "measured": 3.5,
+        "status": "pass",
+        "subject": "smart-kettle"
+      },
+      {
+        "detail": "command coverage and inspection usage",
+        "id": "ftm.command_used",
+        "limit": "covers >=1 CH and used >=1 IN",
+        "measured": "covers=1, inspections=1",
+        "status": "pass",
+        "subject": "TC-01"
+      },
+      {
+        "detail": "command coverage and inspection usage",
+        "id": "ftm.command_used",
+        "limit": "covers >=1 CH and used >=1 IN",
+        "measured": "covers=1, inspections=1",
+        "status": "pass",
+        "subject": "TC-02"
+      },
+      {
+        "detail": "timeout budget compared with operation cycle time",
+        "id": "ftm.station_fit",
+        "limit": 25.0,
+        "measured": 3.5,
+        "status": "pass",
+        "subject": "OP03"
+      },
+      {
+        "detail": "circuit test access net",
+        "id": "dft.test_access",
+        "limit": "present in circuit import",
+        "measured": "present",
+        "status": "pass",
+        "subject": "FTM_STRAP"
+      },
+      {
+        "detail": "circuit test access net",
+        "id": "dft.test_access",
+        "limit": "present in circuit import",
+        "measured": "present",
+        "status": "pass",
+        "subject": "UART_RX"
+      },
+      {
+        "detail": "circuit test access net",
+        "id": "dft.test_access",
+        "limit": "present in circuit import",
+        "measured": "present",
+        "status": "pass",
+        "subject": "UART_TX"
+      },
+      {
+        "detail": "inspection control linked",
+        "id": "pfmea.controls",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "FM-01"
+      },
+      {
+        "detail": "high-severity risk control",
+        "id": "pfmea.high_severity",
+        "limit": ">=1 full inspection control",
+        "measured": 1,
+        "status": "pass",
+        "subject": "FM-01"
+      },
+      {
+        "detail": "inspection control linked",
+        "id": "pfmea.controls",
+        "limit": ">=1",
+        "measured": 1,
+        "status": "pass",
+        "subject": "FM-02"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 2,
+        "status": "pass",
+        "subject": "OP01"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=1, precautions=1",
+        "status": "pass",
+        "subject": "OP01"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 1,
+        "status": "pass",
+        "subject": "OP02"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=1, precautions=1",
+        "status": "pass",
+        "subject": "OP02"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 2,
+        "status": "pass",
+        "subject": "OP03"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=0, precautions=0",
+        "status": "pass",
+        "subject": "OP03"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 1,
+        "status": "pass",
+        "subject": "OP04"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=1, precautions=1",
+        "status": "pass",
+        "subject": "OP04"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 2,
+        "status": "pass",
+        "subject": "OP05"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=1, precautions=2",
+        "status": "pass",
+        "subject": "OP05"
+      },
+      {
+        "detail": "work-instruction step coverage",
+        "id": "work_instruction.steps",
+        "limit": ">=1; every step has key points",
+        "measured": 1,
+        "status": "pass",
+        "subject": "OP06"
+      },
+      {
+        "detail": "safety instruction coverage",
+        "id": "work_instruction.safety",
+        "limit": "hazard precautions; hazards for hipot/ground-bond",
+        "measured": "hazards=0, precautions=0",
+        "status": "pass",
+        "subject": "OP06"
+      },
+      {
+        "detail": "sha256 matches",
+        "id": "imports.fresh",
+        "limit": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed",
+        "measured": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed",
+        "status": "pass",
+        "subject": "upstream/smart-kettle.circuit-brief.json"
+      }
+    ],
+    "product": "smart-kettle",
+    "revision": "1.0",
+    "verdict": "pass"
+  },
+  "liaison": {
+    "answered": 0,
+    "by_response_status": {
+      "accepted": 0,
+      "deferred": 0,
+      "needs_info": 0,
+      "rejected": 0
+    },
+    "malformed": [],
+    "mismatched": 0,
+    "open": 4,
+    "orphans": []
+  },
+  "product": {
+    "name": "smart-kettle",
+    "revision": "1.0"
+  },
+  "schema_version": 1,
+  "system": "prodeng",
+  "takt_s": 72.0,
+  "verdict": "pass"
+}
