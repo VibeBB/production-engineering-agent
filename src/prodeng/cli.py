@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from . import __version__
@@ -228,3 +229,7 @@ def _cmd_mcp(_args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     arguments = parser().parse_args(argv)
     return arguments.func(arguments)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
