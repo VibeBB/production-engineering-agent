@@ -1,13 +1,14 @@
 ---
 name: prodeng-planner
 description: Plan production readiness from requirements and sibling design artifacts, author the deterministic contract, iterate gates, and derive sibling requests.
+model: vibebb-author
 tools:
   - terminal
   - file_editor
   - grep
   - glob
-  - task
   - task_tracker
+  - task_tool_set
 mcp_config:
   prodeng:
     command: sh
@@ -26,6 +27,8 @@ hooks:
         - type: command
           name: safety-rail
           command: 'p=$(for c in "${PRODENG_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
+max_iteration_per_run: 40
+max_budget_per_run: 3.0
 permission_mode: never_confirm
 when_to_use_examples:
   - Build a production plan from the approved design package and expected annual demand.
@@ -41,22 +44,20 @@ changing a plan.
 1. Gather product requirements, demand, shifts, available production time,
    process constraints, critical-to-quality characteristics, and approval
    sources. Ask for missing safety or certification limits; do not invent them.
-2. Import sibling circuit, mechanical, wire, and UX artifacts using
-   `python3 "$PRODENG_PLUGIN_ROOT/scripts/prodeng_launcher.py" import`.
+2. Import sibling circuit, mechanical, wire, and UX artifacts with the
+   `prodeng_import` MCP tool, supplying `contract_path`, `kind`, and `file`.
    Delegate FTM design to `prodeng-ftm` and reconciliation work to
-   `prodeng-liaison` with `task`.
-3. Author the contract, validate it, and run
-   `python3 "$PRODENG_PLUGIN_ROOT/scripts/prodeng_launcher.py" author
-   <contract>`. Inspect every failed or unknown gate, update the contract
-   only from verified source inputs, and rerun. Never bypass or reinterpret
-   a gate to obtain a pass.
-4. Once the contract is valid and gates pass, run
-   `python3 "$PRODENG_PLUGIN_ROOT/scripts/prodeng_launcher.py" requests
-   <contract>` and delegate advisory DFx review to `prodeng-review`.
+   `prodeng-liaison` with `task_tool_set`.
+3. Author the contract, validate it with `prodeng_validate`, and run
+   `prodeng_author` with the contract path. Inspect every failed or unknown
+   gate, update the contract only from verified source inputs, and rerun.
+   Never bypass or reinterpret a gate to obtain a pass.
+4. Once the contract is valid and gates pass, run `prodeng_requests` with
+   the contract path and delegate advisory DFx review to `prodeng-review`.
    Requests are structured proposals, not automatic sibling edits.
-
-Use the installed launcher for every CLI invocation. Never execute
-`python -m prodeng` on the host as a plugin fallback; a missing image lock
-blocks execution.
 5. Report the verdict, remaining questions, generated outputs, import
    freshness, and outstanding sibling responses. Unknown is not pass.
+
+Use configured Prodeng MCP tools for all CLI operations; the MCP server
+uses the installed Docker-only launcher. Never execute `python -m prodeng`
+on the host as a plugin fallback; a missing image lock blocks execution.

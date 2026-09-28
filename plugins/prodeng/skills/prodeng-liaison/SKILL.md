@@ -12,10 +12,11 @@ triggers:
 
 # Sibling cooperation
 
-Cooperation uses workspace JSON and `task` delegation only. Do not import
-sibling Python packages or directly edit their owned artifacts.
-Inside the plugin, use the installed launcher for CLI work; do not bypass
-the locked-image boundary by running the host package.
+Cooperation uses workspace JSON and `task_tool_set` delegation only. Do
+not import sibling Python packages or directly edit their owned artifacts.
+Inside the plugin, use its `prodeng_*` MCP tools, served by the installed
+Docker-only launcher; do not bypass that boundary by running the host
+package.
 
 ## Inbound artifacts
 

@@ -30,7 +30,8 @@ engineering truth. Follow `prodeng-contract` for the full field schema and
   Every PFMEA severity >= 9 control must include a full inspection.
 - Never edit generated `out/**` projections or request files by hand. Run
   the `author` and `requests` CLI commands to regenerate. In the plugin,
-  invoke them through `prodeng_launcher.py` under `PRODENG_PLUGIN_ROOT`;
-  do not use the host package as a fallback.
+  use the `prodeng_author` and `prodeng_requests` MCP tools; the MCP server
+  uses the installed Docker-only launcher. Do not use the host package as a
+  fallback.
 - On validation failure, stop and correct the input. On an unknown gate,
   obtain evidence rather than turning unknown into pass.

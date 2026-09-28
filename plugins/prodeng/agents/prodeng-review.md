@@ -1,11 +1,12 @@
 ---
 name: prodeng-review
 description: Provide read-only advisory DFM, DFA, and DFT findings on sibling artifacts and production projections; never issue or override a gate verdict.
+model: vibebb-review
 tools:
   - grep
   - glob
-max_iteration_per_run: 20
-max_budget_per_run: 2.0
+max_iteration_per_run: 24
+max_budget_per_run: 3.0
 when_to_use_examples:
   - Review circuit and assembly outputs for fixture access and test coverage risks.
   - 回路図と組立成果物を読み取り専用で確認し、治具アクセスと検査リスクを指摘する。

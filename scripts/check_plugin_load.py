@@ -7,6 +7,7 @@ mismatch. Intended for the `plugin-load` CI job.
 
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from pathlib import Path
@@ -20,6 +21,24 @@ EXPECTED_AGENTS = {
     "prodeng-liaison",
     "prodeng-planner",
     "prodeng-review",
+}
+EXPECTED_AGENT_MODELS = {
+    "prodeng-ftm": "vibebb-author",
+    "prodeng-liaison": "vibebb-author",
+    "prodeng-planner": "vibebb-author",
+    "prodeng-review": "vibebb-review",
+}
+EXPECTED_AGENT_TOOLS = {
+    "prodeng-ftm": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
+    "prodeng-liaison": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
+    "prodeng-planner": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
+    "prodeng-review": {"grep", "glob"},
+}
+EXPECTED_AGENT_LIMITS = {
+    "prodeng-ftm": (30, 3.0),
+    "prodeng-liaison": (30, 3.0),
+    "prodeng-planner": (40, 3.0),
+    "prodeng-review": (24, 3.0),
 }
 EXPECTED_SKILLS = {
     "prodeng-contract",
@@ -58,6 +77,31 @@ def _registered_tools() -> set[str]:
     return set(list_registered_tools()) | set(BUILT_IN_TOOL_CLASSES)
 
 
+def _profile_names_from_hook(plugin_dir: Path) -> set[str]:
+    hook_path = plugin_dir / "hooks" / "scripts" / "ensure_llm_profiles.py"
+    try:
+        module = ast.parse(hook_path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return set()
+    for statement in module.body:
+        if not isinstance(statement, ast.Assign):
+            continue
+        if not any(
+            isinstance(target, ast.Name) and target.id == "_PROFILES"
+            for target in statement.targets
+        ):
+            continue
+        if not isinstance(statement.value, (ast.Tuple, ast.List)):
+            return set()
+        profiles: set[str] = set()
+        for element in statement.value.elts:
+            if not isinstance(element, ast.Constant) or not isinstance(element.value, str):
+                return set()
+            profiles.add(element.value)
+        return profiles
+    return set()
+
+
 def check_plugin(plugin_dir: Path) -> list[str]:
     """Return a list of mismatch reasons (empty means OK)."""
     from openhands.sdk.plugin import (  # pyright: ignore[reportMissingImports,reportMissingModuleSource]
@@ -80,6 +124,34 @@ def check_plugin(plugin_dir: Path) -> list[str]:
     agents = {a.name for a in plugin.agents}
     if agents != EXPECTED_AGENTS:
         reasons.append(f"agents {sorted(agents)} != {sorted(EXPECTED_AGENTS)}")
+    for agent in plugin.agents:
+        expected_tools = EXPECTED_AGENT_TOOLS.get(agent.name)
+        actual_tools = set(agent.tools)
+        if actual_tools != expected_tools:
+            reasons.append(
+                f"agent {agent.name!r} tools {sorted(actual_tools)} != "
+                f"{sorted(expected_tools or set())}"
+            )
+        expected_model = EXPECTED_AGENT_MODELS.get(agent.name)
+        if agent.model != expected_model:
+            reasons.append(f"agent {agent.name!r} model {agent.model!r} != {expected_model!r}")
+        expected_limits = EXPECTED_AGENT_LIMITS.get(agent.name)
+        if expected_limits is not None:
+            expected_iterations, expected_budget = expected_limits
+            if (
+                agent.max_iteration_per_run != expected_iterations
+                or agent.max_budget_per_run != expected_budget
+            ):
+                reasons.append(
+                    f"agent {agent.name!r} limits "
+                    f"({agent.max_iteration_per_run}, {agent.max_budget_per_run}) != "
+                    f"({expected_iterations}, {expected_budget})"
+                )
+
+    profiles = _profile_names_from_hook(plugin_dir)
+    missing_profiles = set(EXPECTED_AGENT_MODELS.values()) - profiles
+    if missing_profiles:
+        reasons.append(f"ensure_llm_profiles.py does not provision {sorted(missing_profiles)}")
 
     skills = {s.name for s in plugin.skills}
     if skills != EXPECTED_SKILLS:
@@ -126,6 +198,8 @@ def check_plugin(plugin_dir: Path) -> list[str]:
             reasons.append(f"agent {agent.name!r} is missing MCP configuration")
 
     registered = _registered_tools()
+    if "task_tool_set" not in registered:
+        reasons.append("SDK 1.49.6 registered tool set is missing 'task_tool_set'")
     for agent in plugin.agents:
         for tool in agent.tools:
             if tool not in registered:
@@ -134,6 +208,15 @@ def check_plugin(plugin_dir: Path) -> list[str]:
         for tool in command.allowed_tools:
             if tool not in registered:
                 reasons.append(f"command {command.name!r} allowed-tool {tool!r} not registered")
+
+    from prodeng.mcp_server import tool_specs
+
+    for tool in tool_specs():
+        description = tool.description
+        if not isinstance(description, str) or not description.strip() or "\n" in description:
+            reasons.append(f"MCP tool {tool.name!r} must have a one-line description")
+        elif description == tool.name.replace("_", " "):
+            reasons.append(f"MCP tool {tool.name!r} has a generic name-derived description")
     return reasons
 
 

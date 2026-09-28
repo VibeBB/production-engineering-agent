@@ -11,7 +11,8 @@
 The `*.prodeng.json` contract is truth. `out/<product>/` and
 `*.prodeng-request.json` are projections and are never hand-edited.
 `unknown` fails closed. Sibling agents exchange workspace JSON plus
-SHA-256 provenance and use `task` delegation; no sibling package is imported.
+SHA-256 provenance and use `task_tool_set` delegation; no sibling package
+is imported.
 The launcher runs only in the digest-locked
 `ghcr.io/vibebb/prodeng-tools` image and has no host fallback.
 

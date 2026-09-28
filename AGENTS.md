@@ -15,7 +15,7 @@ core and its OpenHands plugin. `docs/` describes architecture and operation;
 - LLM and vision outputs are L2 advisory. They can identify evidence gaps
   or propose a sibling request but cannot override a gate.
 - Sibling cooperation is through JSON artifacts, SHA-256 provenance, and
-  OpenHands `task` delegation. Never import sibling packages or edit their
+  OpenHands `task_tool_set` delegation. Never import sibling packages or edit their
   owned source artifacts directly.
 - Safety/certification values must be traceable to an applicable standard
   and the product certification procedure. Do not invent voltages, leakage
@@ -33,7 +33,7 @@ does not fall back to host execution. Do not create placeholder
 creates digest locks after an image is published.
 
 Agents declare their hooks explicitly because hooks do not propagate to
-sub-agents. Delegate with the OpenHands `task` tool. AgentDefinitions do not
+sub-agents. Delegate with the OpenHands `task_tool_set` tool. AgentDefinitions do not
 declare a `skills:` field; prompts reference skill files. The review agent
 is read-only and has no MCP configuration.
 

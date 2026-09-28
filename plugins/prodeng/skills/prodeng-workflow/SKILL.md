@@ -34,7 +34,7 @@ advisory and may identify questions or requests, but cannot alter a gate.
    relax its threshold to obtain pass.
 5. After a passing author run, derive requests with `prodeng requests`.
    Send each request to the responsible sibling through workspace JSON and
-   `task`; do not directly modify sibling-owned design files.
+   `task_tool_set`; do not directly modify sibling-owned design files.
 6. Reconcile responses with `prodeng liaison`. Unanswered or mismatched
    responses remain informationally open and do not override gates.
 7. Report the gate verdict, unresolved questions, stale imports, emitted

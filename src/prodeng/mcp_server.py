@@ -103,6 +103,17 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
         "additionalProperties": False,
     },
 }
+_TOOL_DESCRIPTIONS = {
+    "prodeng_doctor": "Report package, Python, and locked tools-image diagnostics.",
+    "prodeng_validate": "Validate a production-engineering contract and its cross-references.",
+    "prodeng_gates": "Evaluate deterministic gates for a production-engineering contract.",
+    "prodeng_export": "Write deterministic manufacturing-plan projections for a contract.",
+    "prodeng_author": "Validate, gate, project, report, and derive requests for a contract.",
+    "prodeng_import": "Import a supported sibling artifact and record its SHA-256 provenance.",
+    "prodeng_requests": "Derive and write structured change requests to sibling agents.",
+    "prodeng_liaison": "Reconcile production-engineering requests with sibling responses.",
+    "prodeng_sample": "Select an attribute sampling plan for a lot, AQL, and inspection level.",
+}
 _WRITE_TOOLS = {
     "prodeng_export",
     "prodeng_author",
@@ -115,7 +126,7 @@ def tool_specs() -> list[types.Tool]:
     return [
         types.Tool(
             name=name,
-            description=name.replace("_", " "),
+            description=_TOOL_DESCRIPTIONS[name],
             inputSchema=schema,
             annotations=types.ToolAnnotations(
                 title=name,

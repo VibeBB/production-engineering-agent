@@ -13,9 +13,9 @@ triggers:
 
 # Inspection and sampling
 
-When operating through the plugin, invoke CLI operations with the installed
-`prodeng_launcher.py` under `PRODENG_PLUGIN_ROOT`; do not run the host
-package as a fallback.
+When operating through the plugin, use its `prodeng_*` MCP tools. The MCP
+server uses the installed Docker-only launcher; do not run the host package
+as a fallback.
 
 ## Characteristic class and coverage
 

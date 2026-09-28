@@ -6,8 +6,8 @@ vibebb-review`, resolved through the SDK's LLMProfileStore
 (~/.openhands/profiles/<name>.json). A missing profile raises ValueError
 at task spawn and silently disables task delegation. This hook clones the
 conversation's `active_profile` into the two vibebb profile slots when
-they are absent so `task` works out of the box; operators can then edit
-the files to route each lane at a different model.
+they are absent so `task_tool_set` delegation works out of the box;
+operators can then edit the files to route each lane at a different model.
 
 Advisory only: reads settings, writes absent files, prints a JSON
 finding, always exits 0.

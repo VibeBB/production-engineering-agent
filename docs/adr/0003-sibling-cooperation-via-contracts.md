@@ -15,7 +15,7 @@ Exchange JSON artifacts through the shared workspace. Inbound adapters
 normalize source fields and record system, kind, relative path, SHA-256,
 and extracted facts. Outbound change requests use a versioned schema and
 name a target sibling; sibling responses are reconciled informationally.
-Agent-to-agent work is delegated with `task`. Do not import sibling
+Agent-to-agent work is delegated with `task_tool_set`. Do not import sibling
 packages or edit sibling-owned source files.
 
 ## Consequences
