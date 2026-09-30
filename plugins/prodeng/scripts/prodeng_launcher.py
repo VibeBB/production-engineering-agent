@@ -41,6 +41,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 _MODULES = {
     "mcp_server": "prodeng.mcp_server",
@@ -49,6 +50,8 @@ _MODULES = {
 _CONTAINER_SRC = "/plugin-src"
 _ENV_PREFIXES = ("OPENHANDS_", "PRODENG_")
 _ENV_KEYS = ("TMPDIR",)
+_INSPECT_TIMEOUT_S = 30
+_PULL_TIMEOUT_S = 900
 
 # The container runs as the host uid, whose passwd entry and home do not
 # exist inside the image: a forwarded HOME/XDG leaves fontconfig, ezdxf and
@@ -131,11 +134,17 @@ def _repo_dirs(plugin_root: Path) -> list[Path]:
 
 def _lock_entry_ref(lock_path: Path, key: str | None) -> str | None:
     try:
-        data = json.loads(lock_path.read_text(encoding="utf-8"))
+        data: Any = json.loads(lock_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
+    data = cast(dict[str, Any], data)
     entry = data.get(key) if key else data
-    if not isinstance(entry, dict) or not entry.get("image"):
+    if not isinstance(entry, dict):
+        return None
+    entry = cast(dict[str, Any], entry)
+    if not entry.get("image"):
         return None
     if entry.get("digest"):
         return f"{entry['image']}@{entry['digest']}"
@@ -179,15 +188,19 @@ def _ensure_image(plugin_root: Path, *, pull: bool = True) -> str:
     ref = os.environ.get("PRODENG_TOOLS_IMAGE") or _image_from_lock(plugin_root)
     if ref is None:
         raise RuntimeError("prodeng tools image not yet published/locked")
-    if (
-        subprocess.run(
+    try:
+        inspected = subprocess.run(
             [docker, "image", "inspect", ref],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=False,
-        ).returncode
-        == 0
-    ):
+            timeout=_INSPECT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"docker image inspect timed out after {_INSPECT_TIMEOUT_S} seconds"
+        ) from exc
+    if inspected.returncode == 0:
         return ref
     if not pull:
         raise RuntimeError(
@@ -195,14 +208,16 @@ def _ensure_image(plugin_root: Path, *, pull: bool = True) -> str:
             "run 'prodeng_launcher.py prewarm' to fetch it"
         )
     print(f"prodeng_launcher: pulling tools image {ref}", file=sys.stderr)
-    if (
-        subprocess.run(
+    try:
+        pulled = subprocess.run(
             [docker, "pull", ref],
             check=False,
             stdout=subprocess.DEVNULL,
-        ).returncode
-        == 0
-    ):
+            timeout=_PULL_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"docker pull timed out after {_PULL_TIMEOUT_S} seconds") from exc
+    if pulled.returncode == 0:
         return ref
     raise RuntimeError(f"prodeng tools image {ref} not present locally and pull failed")
 
@@ -226,8 +241,11 @@ def _docker_argv(image: str, source: Path | None, inner_argv: list[str]) -> list
     if source is not None:
         argv += ["-v", f"{source}:{_CONTAINER_SRC}:ro", "-e", f"PYTHONPATH={_CONTAINER_SRC}"]
     for key, value in os.environ.items():
-        if key in _ENV_KEYS or any(key.startswith(p) for p in _ENV_PREFIXES):
+        if key != "OPENHANDS_PROJECT_DIR" and (
+            key in _ENV_KEYS or any(key.startswith(p) for p in _ENV_PREFIXES)
+        ):
             argv += ["-e", f"{key}={value}"]
+    argv += ["-e", f"OPENHANDS_PROJECT_DIR={workdir}"]
     for key, value in _CONTAINER_ENV.items():
         argv += ["-e", f"{key}={value}"]
     argv.append(image)
