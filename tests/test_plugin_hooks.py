@@ -15,6 +15,9 @@ HOOK = (
     / "scripts"
     / "protect_generated.py"
 )
+REVIEW_AGENT = (
+    Path(__file__).resolve().parents[1] / "plugins" / "prodeng" / "agents" / "prodeng-review.md"
+)
 
 
 def _attempt_write(path: str) -> subprocess.CompletedProcess[str]:
@@ -35,3 +38,18 @@ def test_generated_output_and_request_are_protected_but_response_is_not() -> Non
     assert _attempt_write("out/product/control-plan.csv").returncode == 2
     assert _attempt_write("kettle.prodeng-request.json").returncode == 2
     assert _attempt_write("kettle.prodeng-response.json").returncode == 0
+
+
+def test_review_agent_has_view_only_visual_hooks() -> None:
+    source = REVIEW_AGENT.read_text(encoding="utf-8")
+    frontmatter = source.split("---", 2)[1]
+
+    assert "  - file_editor" in frontmatter
+    assert "matcher: file_editor|apply_patch|terminal" in frontmatter
+    assert "name: protect-generated" in frontmatter
+    assert "matcher: inspect_image_with_vision" in frontmatter
+    assert "name: record-vision-tool-event" in frontmatter
+    assert "matcher: file_editor" in frontmatter
+    assert "name: record-image-observation" in frontmatter
+    assert "`file_editor view`" in source
+    assert "use `view` only" in source

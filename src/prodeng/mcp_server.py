@@ -23,6 +23,7 @@ from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
 from .sampling import LEVELS, sampling_plan
+from .workspace import workspace_path
 
 server = Server(f"prodeng-mcp/{__version__}")
 
@@ -144,6 +145,44 @@ def _default_out(contract_path: Path, product_name: str) -> Path:
     return contract_path.parent / "out" / product_name
 
 
+def _workspace_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    schema = _SCHEMAS.get(name)
+    required_paths: set[str] = set()
+    if schema is not None:
+        required = schema.get("required", [])
+        if isinstance(required, list):
+            required_paths = {key for key in cast(list[Any], required) if isinstance(key, str)}
+
+    normalized = dict(arguments)
+    for key, value in arguments.items():
+        if key not in {"path", "paths", "file", "directory"} and not key.endswith(
+            ("_path", "_dir")
+        ):
+            continue
+        if isinstance(value, list):
+            values = cast(list[Any], value)
+            normalized[key] = [
+                _workspace_path_argument(key, item, required_paths) for item in values
+            ]
+        else:
+            normalized[key] = _workspace_path_argument(key, value, required_paths)
+    return normalized
+
+
+def _workspace_path_argument(key: str, value: Any, required_paths: set[str]) -> Any:
+    if value is None:
+        if key in required_paths:
+            raise ValueError(f"'{key}' must be a non-empty path")
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"'{key}' must be a path string")
+    if not value:
+        if key in required_paths:
+            raise ValueError(f"'{key}' must be a non-empty path")
+        return value
+    return str(workspace_path(value))
+
+
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, object]:
     if name == "prodeng_doctor":
         return run_doctor()
@@ -224,12 +263,22 @@ async def list_tools() -> list[types.Tool]:
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.ContentBlock]:
-    try:
-        payload: object = await dispatch_tool(name, arguments or {})
-    except Exception as exc:
-        payload = {"verdict": "fail", "detail": f"{name} error: {exc}"}
-    return [types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))]
+async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
+    is_error = name not in _SCHEMAS
+    if is_error:
+        payload: object = {"verdict": "fail", "detail": f"unknown tool {name}"}
+    else:
+        try:
+            payload = await dispatch_tool(name, _workspace_arguments(name, arguments or {}))
+        except Exception as exc:
+            payload = {"verdict": "fail", "detail": f"{name} error: {exc}"}
+            is_error = True
+    return types.CallToolResult(
+        content=[
+            types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))
+        ],
+        isError=is_error,
+    )
 
 
 async def _run() -> None:

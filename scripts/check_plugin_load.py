@@ -32,7 +32,7 @@ EXPECTED_AGENT_TOOLS = {
     "prodeng-ftm": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
     "prodeng-liaison": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
     "prodeng-planner": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
-    "prodeng-review": {"grep", "glob"},
+    "prodeng-review": {"file_editor", "grep", "glob"},
 }
 EXPECTED_AGENT_LIMITS = {
     "prodeng-ftm": (30, 3.0),

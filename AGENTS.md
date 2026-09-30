@@ -55,6 +55,13 @@ generated reports, UTF-8 text, and one final newline. Use the narrowest
 tests and checks for a change, then the prescribed verification set before
 submitting.
 
+The fast verification stage includes the shared-hook checker and enforces the
+configured line-coverage threshold. Shared hooks are canonical across the
+family; change all 9 copies together and update EXPECTED. `intake_attachments.py`,
+`protect_generated.py`, `record_image_observation.py`,
+`record_vision_tool_event.py`, and `report_prodeng_status.py` are
+repo-specific.
+
 All source, docs, issue/PR text, and commit messages are English, except
 `README.ja.md` and Japanese examples in agent/skill frontmatter. Follow the
 repository's pinned Ruff/Pyright configuration and Pydantic v2 conventions.
