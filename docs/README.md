@@ -7,6 +7,8 @@
 - [Production-engineering research note](research/production-engineering.md):
   practice areas, standards references, takt formula, and Japanese/English
   terminology.
+- [SDK v1.50.0 feature evaluation](research/sdk-v1.50.0-feature-evaluation.md):
+  OpenHands SDK and uv update decisions.
 
 ## Architecture decisions
 

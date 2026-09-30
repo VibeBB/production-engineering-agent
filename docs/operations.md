@@ -2,7 +2,7 @@
 
 ## Local development
 
-Use Python 3.12+ and uv 0.12.19:
+Use Python 3.12+ and uv 0.12.21:
 
 ```bash
 uv sync --all-groups
