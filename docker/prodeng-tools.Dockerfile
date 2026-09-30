@@ -1,4 +1,4 @@
-ARG UV_VERSION=0.12.19
+ARG UV_VERSION=0.12.21
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
 
 FROM debian:13-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
