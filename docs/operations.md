@@ -29,6 +29,12 @@ uv run python scripts/verify_docs.py
 uv run --group sdk-check python scripts/check_plugin_load.py
 ```
 
+Workflow changes are checked by the repository's actionlint and zizmor
+workflow. The required image lock is validated before the locked smoke run;
+when an attestation URL is present, the check verifies it against the publish
+workflow before pulling the image. Existing locks without attestation metadata
+emit a warning and remain compatible.
+
 ## Plugin and tools image
 
 The OpenHands launcher and `scripts/run_in_locked_image.py` use Docker only.
@@ -51,6 +57,9 @@ python scripts/run_in_locked_image.py -- python scripts/e2e_authoring.py \
 
 Image lock changes must be produced by the publish workflow or its
 `update_image_digest_lock.py` helper using an actual registry digest. The
+publish workflow creates a GitHub artifact attestation for the tools image and
+records its URL in both lock entries; the locked-image workflow verifies that
+provenance when available. The
 base image digest and uv version belong in
 `docker/prodeng-tools.Dockerfile`; CI action references remain SHA-pinned.
 
@@ -84,7 +93,9 @@ dependencies, uv, Python, pinned actions, workflow tools, and Docker base
 surfaces. It performs external version queries; inspect the generated
 candidate report and review upstream changelogs before updating. Deferred
 updates require a rationale and review date in
-`scripts/dependency_update_deferrals.json`.
+`scripts/dependency_update_deferrals.json`. A failed external query is counted
+as unknown in the JSON report, and the scheduled issue remains open until
+unknown and outdated counts are both zero.
 
 Release tags must match the Python package and plugin version. Build and
 publish the tools image only through the locked workflow; the workflow

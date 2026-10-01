@@ -4,7 +4,18 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
     commit-message:
       prefix: "deps"
+  - package-ecosystem: docker
+    directory: "/docker"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
   # uv updates are reported by check-dependency-updates.yml so candidates
   # can be checked against [tool.uv] required-version before changing the pin.
