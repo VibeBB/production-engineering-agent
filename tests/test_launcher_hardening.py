@@ -5,7 +5,7 @@ import json
 import subprocess
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, TypedDict
 
 import pytest
 
@@ -22,8 +22,34 @@ def _load_launcher() -> ModuleType:
     return module
 
 
-def _fixed_image_ref(_root: Path) -> str:
-    return "prodeng-tools:test"
+class _ImagePin(TypedDict):
+    ref: str
+    image: str | None
+    digest: str | None
+    attestation: str | None
+
+
+def _fixed_image_ref(_root: Path) -> _ImagePin:
+    return {
+        "ref": "prodeng-tools:test",
+        "image": None,
+        "digest": None,
+        "attestation": None,
+    }
+
+
+def test_source_resolution_uses_prodeng_src(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    launcher = _load_launcher()
+    source = tmp_path / "prodeng-src"
+    package = source / "prodeng"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    monkeypatch.setenv("PRODENG_SRC", str(source))
+    monkeypatch.delenv("WIRE_SRC", raising=False)
+
+    assert launcher.resolve_source(tmp_path / "plugins" / "prodeng") == source.resolve()
 
 
 def test_inspect_timeout_is_operation_specific_and_does_not_pull(
@@ -78,22 +104,28 @@ def test_docker_launcher_sets_workspace_root(
     assert f"OPENHANDS_PROJECT_DIR={tmp_path}" in argv
 
 
-def test_lock_entry_ref_ignores_attestation_metadata(tmp_path: Path) -> None:
+def test_lock_entry_ref_preserves_attestation_metadata(tmp_path: Path) -> None:
     launcher = _load_launcher()
     lock = tmp_path / "image-digests.json"
+    image = "ghcr.io/vibebb/prodeng-tools"
+    digest = f"sha256:{'a' * 64}"
+    attestation = "https://github.com/VibeBB/production-engineering-agent/attestations/example"
     lock.write_text(
         json.dumps(
             {
                 "prodeng_tools": {
-                    "image": "ghcr.io/vibebb/prodeng-tools",
-                    "digest": f"sha256:{'a' * 64}",
-                    "attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/example",
+                    "image": image,
+                    "digest": digest,
+                    "attestation": attestation,
                 }
             }
         ),
         encoding="utf-8",
     )
 
-    assert launcher._lock_entry_ref(lock, "prodeng_tools") == (
-        f"ghcr.io/vibebb/prodeng-tools@sha256:{'a' * 64}"
-    )
+    assert launcher._lock_entry_ref(lock, "prodeng_tools") == {
+        "ref": f"{image}@{digest}",
+        "image": image,
+        "digest": digest,
+        "attestation": attestation,
+    }

@@ -72,3 +72,5 @@ Use focused commits with imperative English messages. Stage explicit paths;
 never use `git add .`. Do not amend, force-push, skip hooks, push to main,
 run destructive reset/clean operations, or stage secrets. Do not commit
 generated build environments or image lock placeholders.
+
+Shared workflows are canonical across the family; change all 11 copies together and update `EXPECTED` in `scripts/check_shared_workflows.py`.
