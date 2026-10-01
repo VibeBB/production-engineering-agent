@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 from pathlib import Path
 from types import ModuleType
@@ -75,3 +76,24 @@ def test_docker_launcher_sets_workspace_root(
     argv = launcher._docker_argv("prodeng-tools:test", None, ["python", "-m", "prodeng.cli"])
 
     assert f"OPENHANDS_PROJECT_DIR={tmp_path}" in argv
+
+
+def test_lock_entry_ref_ignores_attestation_metadata(tmp_path: Path) -> None:
+    launcher = _load_launcher()
+    lock = tmp_path / "image-digests.json"
+    lock.write_text(
+        json.dumps(
+            {
+                "prodeng_tools": {
+                    "image": "ghcr.io/vibebb/prodeng-tools",
+                    "digest": f"sha256:{'a' * 64}",
+                    "attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/example",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert launcher._lock_entry_ref(lock, "prodeng_tools") == (
+        f"ghcr.io/vibebb/prodeng-tools@sha256:{'a' * 64}"
+    )

@@ -17,3 +17,4 @@
 - [0003 — Sibling cooperation via contracts](adr/0003-sibling-cooperation-via-contracts.md)
 - [0004 — Factory-test-mode contract](adr/0004-factory-test-mode-contract.md)
 - [0005 — Work instructions in TWI format](adr/0005-work-instructions-twi.md)
+- [0006 — Attest published tools images](adr/0006-attest-published-tools-images.md)

@@ -16,6 +16,12 @@ in `docker/image-digests.json` by that workflow after publication. No lock
 file is checked in until the first image has actually been published; never
 create a placeholder image tag or digest.
 
+The publish workflow creates a GitHub artifact attestation for each tools
+image and records the returned URL in the root lock and the plugin's mirrored
+lock. The locked-image check verifies that provenance before pulling a pinned
+image. Older locks without attestation metadata remain usable with a warning;
+no attestation URL is fabricated for an existing pin.
+
 For local image construction, use a local development tag and pass it
 explicitly as `PRODENG_TOOLS_IMAGE` to the launcher or locked-image runner.
 The launcher itself never builds an image or falls back to host execution.
