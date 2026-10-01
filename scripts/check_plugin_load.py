@@ -199,7 +199,7 @@ def check_plugin(plugin_dir: Path) -> list[str]:
 
     registered = _registered_tools()
     if "task_tool_set" not in registered:
-        reasons.append("SDK 1.50.0 registered tool set is missing 'task_tool_set'")
+        reasons.append("SDK 1.50.1 registered tool set is missing 'task_tool_set'")
     for agent in plugin.agents:
         for tool in agent.tools:
             if tool not in registered:
