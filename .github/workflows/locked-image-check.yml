@@ -192,7 +192,7 @@ jobs:
         run: |
           set -euo pipefail
           launcher=plugins/prodeng/scripts/prodeng_launcher.py
-          out=.round2-smoke/prodeng
+          out=.launcher-smoke/prodeng
           mkdir -p "$out"
           if python3 - <<'PY'
           import json
@@ -233,5 +233,5 @@ jobs:
         if: always()
         with:
           name: locked-prodeng-tools-smoke
-          path: ${{ github.workspace }}/.round2-smoke/prodeng/
+          path: ${{ github.workspace }}/.launcher-smoke/prodeng/
           if-no-files-found: ignore

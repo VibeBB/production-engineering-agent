@@ -1,9 +1,12 @@
+# Operations
+
 ## SBOM attestations
 
 `publish-prodeng-images.yml` generates and attests an SPDX-2.3 SBOM for the
 published tools digest and uploads it for 30 days. The lock records the
 returned `sbom_attestation` URL, which `locked-image-check.yml` verifies when
 present; an absent URL warns and continues.
+
 ## Launcher-side verification
 
 `PRODENG_VERIFY_ATTESTATION` accepts `auto` (the default), `require`, or
@@ -14,7 +17,6 @@ attestation, missing `gh`, or failed `gh auth status`; once verification
 starts, failure or timeout prevents the pull. `require` makes skip conditions
 errors, while `off` never verifies. Ordinary invocations do not re-verify a
 locally present image, and `--warn` doctor paths never verify.
-# Operations
 
 ## Local development
 
