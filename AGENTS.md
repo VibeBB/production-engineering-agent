@@ -77,14 +77,16 @@ Shared workflows are canonical across the family; change all 11 copies together 
 
 ## CI/CD
 
-Digest-lock PRs use `scripts/publish_image_pin_pr.sh`: the publisher
-dispatches `ci.yml` and `workflow-lint.yml` on the lock branch, then polls
-the authoritative required-check set for up to 30 minutes. Non-required
-failures do not block publishing; a concluded required-check failure or a PR
-closed without merge fails the job. A PR merged externally triggers the
-existing post-merge main workflows. If required checks are still pending at
-the deadline, the publisher arms squash auto-merge with branch deletion and
-exits successfully.
+Digest-lock PRs use `scripts/publish_image_pin_pr.sh`: the lock PR's own
+`pull_request` runs are the single CI path (dispatched runs never satisfy
+required checks), so the publisher only approves the `action_required` runs
+and polls the authoritative required-check set for up to 30 minutes.
+Non-required failures do not block publishing; a concluded required-check
+failure or a PR closed without merge fails the job. A PR merged externally
+triggers the post-merge main workflows. If required checks are still
+pending at the deadline, the publisher arms squash auto-merge with branch
+deletion and exits successfully; the digest-lock sweep dispatches the
+post-merge verification on main once the armed merge lands.
 
 SPDX SBOM generation prefers registry pulls, uses runner temporary storage,
 and disables file metadata. The attested SBOM is package-level SPDX 2.3;

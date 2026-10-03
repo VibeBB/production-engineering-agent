@@ -16,8 +16,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
+# procps ships `ps` so the container-audit Lynis run executes its
+# process/crypto/account checks instead of aborting 84 sub-tests.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git \
+    && apt-get install -y --no-install-recommends ca-certificates git procps \
     && rm -rf /var/lib/apt/lists/*
 
 # The pinned debian:13-slim digest keeps shipping the deb Trivy flags at
@@ -55,5 +57,9 @@ RUN mkdir -p /opt/prodeng/scripts \
 
 ENV PATH="/app/.venv/bin:${PATH}"
 USER 10001:10001
+
+# CIS Docker DS-0026: the image is a batch CLI, not a long-running service —
+# mark the absence of a probe explicitly instead of leaving it undefined.
+HEALTHCHECK NONE
 
 CMD ["python", "-m", "prodeng"]

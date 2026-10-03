@@ -11,12 +11,24 @@ on:
         type: string
         required: false
         default: ""
+      docker_changed:
+        # auto detects docker/ changes; build forces a rebuild; locked
+        # reuses the digest-locked published image.
+        type: string
+        required: false
+        default: auto
   workflow_dispatch:
     inputs:
       ref:
         type: string
         required: false
         default: ""
+      docker_changed:
+        description: "e2e image source"
+        required: false
+        default: auto
+        type: choice
+        options: [auto, build, locked]
 
 permissions:
   contents: read
@@ -46,14 +58,25 @@ jobs:
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          DOCKER_CHANGED: ${{ inputs.docker_changed }}
         run: |
           set -euo pipefail
+          case "${DOCKER_CHANGED:-auto}" in
+            build) echo "docker=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            locked) echo "docker=false" >> "$GITHUB_OUTPUT"; exit 0 ;;
+            auto) ;;
+            *) echo "::error::docker_changed must be auto, build, or locked (got '$DOCKER_CHANGED')" >&2; exit 1 ;;
+          esac
           if [ -z "${BASE_SHA:-}" ] || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ]; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git diff --name-only "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
-          if grep -Eq '^(docker/|\.dockerignore$)' "$RUNNER_TEMP/changed-files"; then
+          # docker/image-digests.json is publish-owned: a diff touching only
+          # the lock means a new published pin, which the locked-image path
+          # is meant to exercise — not a reason to rebuild.
+          if grep -Ev '^docker/image-digests\.json$' "$RUNNER_TEMP/changed-files" \
+              | grep -Eq '^(docker/|\.dockerignore$)'; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"

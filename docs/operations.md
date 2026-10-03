@@ -203,9 +203,30 @@ publishes the package/plugin release after verification.
 
 CI and image-publishing jobs use `step-security/harden-runner` in audit-only mode. It observes network egress without blocking requests; per-run insights are available in the GitHub Actions job summary.
 
+## Repository settings prerequisites
+
+These properties are enforced by repository settings, not workflow YAML;
+they are recorded here so they survive repository migrations.
+
+- **Dependency graph:** `actions/dependency-review-action` fails with
+  "Dependency review is not supported on this repository" until
+  Settings → Code security → Dependency graph is enabled.
+- **Actions creating pull requests:** the digest-lock and version-bump bot
+  pull requests need Settings → Actions → General → "Allow GitHub Actions
+  to create and approve pull requests".
+- **Required review / code owners:** `.github/CODEOWNERS` names the owner
+  of `.github/workflows/`, `docker/`, and `plugins/prodeng/`, but nothing
+  enforces it until the main ruleset requires approvals (and, optionally,
+  code-owner review). Enabling approvals also gates the
+  `bot/update-image-digests-*` auto-merge loop: give the automation
+  identity a ruleset bypass, or expect to merge each lock PR by hand.
+- **Branch protection:** Scorecard reports partial branch protection; the
+  required-check ruleset is the enforcement point for every merge path
+  above.
+
 ## Digest-lock PR verification
 
-The publisher dispatches `ci.yml` and `workflow-lint.yml` on the lock branch, then polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the existing post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge.
+The lock PR's own `pull_request` runs are the single CI path — dispatched runs never satisfy required checks — so the publisher only approves the `action_required` runs and polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge; the digest-lock sweep dispatches the post-merge verification on main once the armed merge lands.
 
 SPDX generation prefers the GHCR registry source, writes temporary data under
 the runner's temporary directory, and disables file metadata. The publisher
