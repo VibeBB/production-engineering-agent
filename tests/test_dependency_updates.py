@@ -6,6 +6,36 @@ from pathlib import Path
 import pytest
 from scripts import check_dependency_updates
 
+ROOT = check_dependency_updates.ROOT
+
+
+def test_lynis_clone_pin_parsed() -> None:
+    statuses = check_dependency_updates.check_git_clones(
+        ROOT, list_remote_tags=lambda url: ["3.1.7"]
+    )
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.current == "3.1.7"
+    assert lynis.latest == "3.1.7"
+    assert lynis.outdated is False
+
+
+def test_git_clones_report_outdated_and_fetch_failed() -> None:
+    statuses = check_dependency_updates.check_git_clones(
+        ROOT, list_remote_tags=lambda url: ["3.1.7", "3.2.0"]
+    )
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.latest == "3.2.0"
+    assert lynis.outdated is True
+
+    def failed_tags(url: str) -> list[str]:
+        raise OSError(url)
+
+    statuses = check_dependency_updates.check_git_clones(ROOT, list_remote_tags=failed_tags)
+    lynis = next(status for status in statuses if status.name == "CISOfy/lynis")
+    assert lynis.latest == "?"
+    assert lynis.fetch_failed is True
+    assert lynis.outdated is False
+
 
 def test_json_report_counts_fetch_failures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     statuses = [
