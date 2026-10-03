@@ -156,9 +156,12 @@ criteria and rework remain controlled process/product inputs.
 ## Dependency updates and releases
 
 `scripts/check_dependency_updates.py` compares direct/transitive Python
-dependencies, uv, Python, pinned actions, workflow tools, and Docker base
-surfaces. It performs external version queries; inspect the generated
-candidate report and review upstream changelogs before updating. Deferred
+dependencies, uv, Python, pinned actions, workflow tools, Docker base
+surfaces, and workflow `git clone --branch` pins (e.g. the pinned Lynis
+checkout in `container-audit.yml`, compared against the upstream
+repository's latest semver tag). It performs external version queries;
+inspect the generated candidate report and review upstream changelogs
+before updating. Deferred
 updates require a rationale and review date in
 `scripts/dependency_update_deferrals.json`. A failed external query is counted
 as unknown in the JSON report, and the scheduled issue remains open until
