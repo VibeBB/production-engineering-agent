@@ -104,6 +104,15 @@ def test_docker_launcher_sets_workspace_root(
     assert f"OPENHANDS_PROJECT_DIR={tmp_path}" in argv
 
 
+def test_docker_launcher_drops_capabilities_and_new_privileges(tmp_path: Path) -> None:
+    launcher = _load_launcher()
+
+    argv = launcher._docker_argv("prodeng-tools:test", None, ["python", "-m", "prodeng.cli"])
+
+    assert argv[argv.index("--cap-drop") + 1] == "ALL"
+    assert argv[argv.index("--security-opt") + 1] == "no-new-privileges"
+
+
 def test_lock_entry_ref_preserves_attestation_metadata(tmp_path: Path) -> None:
     launcher = _load_launcher()
     lock = tmp_path / "image-digests.json"
