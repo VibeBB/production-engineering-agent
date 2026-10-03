@@ -26,8 +26,17 @@ COPY src/ ./src/
 COPY scripts/e2e_authoring.py /opt/prodeng/scripts/e2e_authoring.py
 COPY examples/smart-kettle/ /opt/prodeng/examples/smart-kettle/
 
+# The uv-managed CPython bundles pip with vendored copies of urllib3,
+# msgpack, and setuptools that nothing in the image invokes — dependencies
+# install via uv and the shipped venv is pip-less — so strip the payload
+# instead of shipping unused vulnerable vendored packages.
 RUN mkdir -p /opt/prodeng/scripts \
     && uv python install 3.12 \
+    && rm -rf /opt/uv/python/bin/pip* \
+              /opt/uv/python/cpython-*/bin/pip* \
+              /opt/uv/python/cpython-*/lib/python3.12/site-packages/pip \
+              /opt/uv/python/cpython-*/lib/python3.12/site-packages/pip-*.dist-info \
+              /opt/uv/python/cpython-*/lib/python3.12/ensurepip \
     && uv sync --locked --no-default-groups \
     && chmod -R a+rX /app /opt/uv/python
 
