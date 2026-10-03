@@ -111,6 +111,17 @@ Three layers were adopted after a comparative evaluation of Lynis,
   Lynis Hardening Index is recorded as a trend metric only — its
   denominator shifts with container-skipped tests, so it never gates.
 
+Lynis-advice follow-ups adopted alongside siblings: the weekly audit
+mounts `docker/lynis-container.prf` (`--profile`), a skip-test list of
+container-inapplicable checks so the index and suggestions reflect
+image-controlled state; `UMASK 027` is appended to `/etc/login.defs`
+(AUTH-9328) and the audit step `chmod 644`s Lynis outputs so the
+runner-side grep can read them; `prodeng_launcher.py` docker argv gains
+`--cap-drop ALL` and `--security-opt no-new-privileges` beside
+`--network none` and `--user`; and `libpcre2-8-0` is upgraded in-build
+via `apt-get install --only-upgrade` because the pinned base digest
+keeps shipping the deb Trivy flags (CVE-2026-103111).
+
 Not adopted, with reasons: `lynis audit dockerfile` (~6 greps, frozen
 since 2018, subset of hadolint, hardening index always 1);
 Dockle (v0.4.15 stale; its CIS-derived checks are covered by Trivy's

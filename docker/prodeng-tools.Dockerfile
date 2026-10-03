@@ -20,6 +20,19 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
+# The pinned debian:13-slim digest keeps shipping the deb Trivy flags at
+# publish (CVE-2026-103111 libpcre2-8-0). Upgrade just that package inside
+# the build so the publish gate stays green.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        --only-upgrade \
+        libpcre2-8-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tighten the login.defs umask to 027 (Lynis AUTH-9328): the image has no
+# interactive users, so files created at runtime stay group-readable only.
+RUN printf 'UMASK 027\n' >> /etc/login.defs
+
 COPY --from=uv /uv /uvx /usr/local/bin/
 COPY pyproject.toml uv.lock .python-version README.md LICENSE ./
 COPY src/ ./src/
