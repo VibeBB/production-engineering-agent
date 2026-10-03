@@ -23,7 +23,7 @@ locally present image, and `--warn` doctor paths never verify.
 
 ## Local development
 
-Use Python 3.12+ and uv 0.12.21:
+Use Python 3.12+ and uv 0.12.22:
 
 ```bash
 uv sync --all-groups
