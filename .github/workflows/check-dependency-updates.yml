@@ -21,6 +21,9 @@ jobs:
       # Creates, edits, and closes the "Dependency update check report" issue.
       issues: write
     steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -50,12 +53,17 @@ jobs:
           print(f"unknown_count={report['unknown_count']}")
           PY
       - name: Post report to issue
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           REPORT_MARKDOWN: ${{ runner.temp }}/report.md
           OUTDATED: ${{ steps.report.outputs.outdated }}
           UNKNOWN: ${{ steps.report.outputs.unknown_count }}
         run: |
+          if [ ! -f "$REPORT_MARKDOWN" ]; then
+            echo "dependency report was not produced" >&2
+            exit 1
+          fi
           # gh issue create fails with "could not add label" when the label
           # does not exist (observed before the first report issue landed).
           gh label create dependency-updates --repo "$GITHUB_REPOSITORY" \
