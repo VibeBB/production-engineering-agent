@@ -23,7 +23,7 @@ locally present image, and `--warn` doctor paths never verify.
 
 ## Local development
 
-Use Python 3.12+ and uv 0.12.22:
+Use Python 3.14+ and uv 0.12.23:
 
 ```bash
 uv sync --all-groups
@@ -189,7 +189,10 @@ such as actionlint, sha256-verified PyPI wheels such as zizmor, and
 `version:` tool inputs on aquasecurity actions), and workflow
 `git clone --branch` pins (e.g. the pinned Lynis
 checkout in `container-audit.yml`, compared against the upstream
-repository's latest semver tag). It performs external version queries;
+repository's latest semver tag). The Python surface covers every workflow's
+`python-version:` inputs and quoted `"3.x"` pins, the `.python-version`
+dotfile, and the Dockerfiles' `uv python install`/`uv venv
+--python`/`python3.x` pins. It performs external version queries;
 inspect the generated candidate report and review upstream changelogs
 before updating. Deferred
 updates require a rationale and review date in
