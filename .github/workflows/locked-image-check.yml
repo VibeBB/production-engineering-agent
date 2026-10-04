@@ -3,6 +3,9 @@ name: Locked image check
 on:
   push:
     branches: [main]
+    paths:
+      - "docker/image-digests.json"
+      - "plugins/prodeng/skills/prodeng-workflow/tools-image.json"
   schedule:
     - cron: "40 0 * * 1"
   workflow_dispatch:

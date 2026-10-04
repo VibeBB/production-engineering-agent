@@ -94,6 +94,10 @@ esac
     summary = tmp_path / "summary.md"
     calls = tmp_path / "calls.log"
     env = os.environ.copy()
+    # A BASH_ENV-exported gh() shell function would shadow the PATH stub
+    # inside the script under test (verify_all runs with one set).
+    env.pop("BASH_ENV", None)
+    env = {key: value for key, value in env.items() if not key.startswith("BASH_FUNC_gh")}
     env.update(
         {
             "PATH": f"{bin_dir}:{env['PATH']}",
@@ -229,6 +233,30 @@ def test_unexpected_required_check_error_fails_with_stderr(
         "stub transport error: permission denied"
     ) in result.stderr
     assert calls.read_text(encoding="utf-8").count("pr checks ") == 1
+
+
+def test_non_empty_base_sha_is_not_forwarded_to_dispatch(
+    publish_pin_pr: tuple[Path, dict[str, str], Path],
+) -> None:
+    """ci.yml's workflow_dispatch inputs are only ref + docker_changed; a
+    '-f base_sha' flag would 422. BASE_SHA stays accepted on argv for
+    interface compat but is never forwarded."""
+    script, env, calls = publish_pin_pr
+    env["GH_STUB_CASE"] = "merged"
+
+    result = subprocess.run(
+        ["bash", str(script), PR_URL, BRANCH, "deadbeef" * 5, "ci.yml locked-image-check.yml"],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+    call_log = calls.read_text(encoding="utf-8")
+
+    assert result.returncode == 0
+    assert "-f base_sha" not in call_log
+    assert "-f docker_changed=locked" in call_log
 
 
 def test_publish_workflow_uses_pin_helper_and_sbom_guard() -> None:

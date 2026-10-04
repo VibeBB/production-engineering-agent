@@ -45,6 +45,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       docker: ${{ steps.scope.outputs.docker }}
+      pin_script: ${{ steps.scope.outputs.pin_script }}
     steps:
       - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -62,6 +63,9 @@ jobs:
           DOCKER_CHANGED: ${{ inputs.docker_changed }}
         run: |
           set -euo pipefail
+          # Recomputed below when a diff exists; early exits keep the
+          # default so the pin-pr-tests job only runs on relevant PRs.
+          echo "pin_script=false" >> "$GITHUB_OUTPUT"
           case "${DOCKER_CHANGED:-auto}" in
             build) echo "docker=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
             locked) echo "docker=false" >> "$GITHUB_OUTPUT"; exit 0 ;;
@@ -81,6 +85,12 @@ jobs:
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The digest-pin merge path is exercised only on main after
+          # merge; flag its script, lock, and workflow inputs so the
+          # pin-pr-tests job gates them on the stub tests.
+          if grep -Eq '^(scripts/publish_image_pin_pr\.sh|scripts/digest_lock_sweep\.sh|scripts/update_image_digest_lock\.py|scripts/print_locked_image\.py|scripts/pull_locked_image\.py|scripts/run_in_locked_image\.py|docker/image-digests\.json|plugins/prodeng/skills/prodeng-workflow/tools-image\.json|\.github/workflows/publish-prodeng-images\.yml|\.github/workflows/digest-lock-sweep\.yml|\.github/workflows/locked-image-check\.yml|tests/test_publish_image_pin_pr\.py|tests/test_image_digest_lock\.py|tests/test_digest_lock_sweep\.py)$' "$RUNNER_TEMP/changed-files"; then
+            echo "pin_script=true" >> "$GITHUB_OUTPUT"
           fi
 
   dockerfile-lint:
@@ -103,6 +113,34 @@ jobs:
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - name: Run BuildKit checks
         run: docker build --check -f docker/prodeng-tools.Dockerfile .
+
+  pin-pr-tests:
+    needs: changes
+    if: needs.changes.outputs.pin_script == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+          disable-telemetry: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.12"
+          cache-suffix: pin-pr-tests
+      - name: Sync dependencies
+        run: uv sync --locked
+      - name: Test pin-PR and image-lock logic
+        run: >-
+          uv run pytest
+          tests/test_publish_image_pin_pr.py
+          tests/test_image_digest_lock.py
+          tests/test_digest_lock_sweep.py
+          -q
 
   verify:
     runs-on: ubuntu-26.04
