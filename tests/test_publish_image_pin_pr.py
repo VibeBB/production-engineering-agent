@@ -158,6 +158,9 @@ def test_pin_pr_state_and_required_checks(
     if case == "merged":
         assert f"workflow run ci.yml --repo {REPOSITORY} --ref main" in call_log
         assert f"--ref {BRANCH}" not in call_log
+        # The post-merge run verifies the pin that just merged: the locked
+        # pull path verifies it without a full image build.
+        assert "-f docker_changed=locked" in call_log
     if case == "closed":
         assert "workflow run" not in call_log
     if case in ("action-required", "pending-timeout"):
