@@ -80,7 +80,7 @@ Shared workflows are canonical across the family; change all 11 copies together 
 Digest-lock PRs use `scripts/publish_image_pin_pr.sh`: the lock PR's own
 `pull_request` runs are the single CI path (dispatched runs never satisfy
 required checks), so the publisher only approves the `action_required` runs
-and polls the authoritative required-check set for up to 30 minutes.
+and polls the authoritative required-check set for up to 15 minutes.
 Non-required failures do not block publishing; a concluded required-check
 failure or a PR closed without merge fails the job. A PR merged externally
 triggers the post-merge main workflows. If required checks are still
