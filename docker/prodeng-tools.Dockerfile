@@ -49,9 +49,9 @@ RUN mkdir -p /opt/prodeng/scripts \
     && uv python install 3.14 \
     && rm -rf /opt/uv/python/bin/pip* \
               /opt/uv/python/cpython-*/bin/pip* \
-              /opt/uv/python/cpython-*/lib/python3.14/site-packages/pip \
-              /opt/uv/python/cpython-*/lib/python3.14/site-packages/pip-*.dist-info \
-              /opt/uv/python/cpython-*/lib/python3.14/ensurepip \
+              /opt/uv/python/cpython-*/lib/python3.*/site-packages/pip \
+              /opt/uv/python/cpython-*/lib/python3.*/site-packages/pip-*.dist-info \
+              /opt/uv/python/cpython-*/lib/python3.*/ensurepip \
     && uv sync --locked --no-default-groups \
     && chmod -R a+rX /app /opt/uv/python
 
