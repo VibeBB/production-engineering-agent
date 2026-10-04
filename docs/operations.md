@@ -141,6 +141,16 @@ msgpack, setuptools — never invoked; dependencies install via `uv` and
 the shipped venv is pip-less) is stripped in the `uv python install`
 layer, so the publish gate stays clean without `.trivyignore` waivers.
 
+### CIS baseline
+
+The Trivy CIS compliance scan reports `DS-0002` (image runs as root) and
+`DS-0026` (no `HEALTHCHECK`) on every tools image. Both are waived with
+`exp:` entries in `.trivyignore`: these are CI build/tool containers, not
+deployed services — workflows that need a non-root UID already run the
+image with `docker run --user`, and batch tooling has no health endpoint
+to probe. The waivers renew or get re-fixed by Dockerfile changes when
+they lapse.
+
 ## Sibling interchange
 
 Run `prodeng import <contract> --from <kind> <file>` on the actual source
@@ -234,3 +244,21 @@ removes file entries and relationships involving files to produce the
 package-level SPDX-2.3 SBOM. A guard reports disk space and the attested SBOM
 size after transformation and fails above 16 MiB; the full Syft SBOM is
 uploaded as a 90-day workflow-run artifact.
+
+## Settings-level posture (recorded decisions)
+
+The following live in repository Settings rather than code; they are
+intentional for the solo-maintainer bot-merge workflow and are recorded
+here so audits do not re-flag them:
+
+- Branch protection does not require approving reviews, code owners, or
+  "apply to administrators": every merge is performed by automation
+  (digest-lock, version-bump, and Devin PRs), so required approvers would
+  only add friction to a pipeline that already gates on the required-check
+  set. OpenSSF Scorecard reports this as Branch-Protection 3 and
+  Code-Review 0; that is the recorded trade-off, not an oversight.
+- The Dependency graph must stay enabled for `dependency-review.yml` to
+  evaluate pull requests.
+- `release.yml` is dispatch-only; run it once with `dry_run=true` before
+  the first real release to rehearse bump, verify, and install-smoke
+  without creating a GitHub release.
