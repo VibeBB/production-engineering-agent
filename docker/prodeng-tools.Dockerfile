@@ -52,6 +52,7 @@ RUN mkdir -p /opt/prodeng/scripts \
               /opt/uv/python/cpython-*/lib/python3.*/site-packages/pip \
               /opt/uv/python/cpython-*/lib/python3.*/site-packages/pip-*.dist-info \
               /opt/uv/python/cpython-*/lib/python3.*/ensurepip \
+              /root/.cache/uv \
     && uv sync --locked --no-default-groups \
     && chmod -R a+rX /app /opt/uv/python
 
