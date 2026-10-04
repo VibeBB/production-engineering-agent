@@ -1,7 +1,7 @@
 # prodeng tools image
 
 `prodeng-tools.Dockerfile` builds the Python-only CLI/MCP runtime. It follows
-the Python sibling pins: uv `0.12.22` and Debian `13-slim`, with the Debian
+the Python sibling pins: uv `0.12.23` and Debian `13-slim`, with the Debian
 OCI index pinned to the registry digest
 `sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a`.
 The digest was read from the OCI registry with
