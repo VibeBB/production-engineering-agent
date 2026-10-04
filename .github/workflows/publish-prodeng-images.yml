@@ -24,7 +24,17 @@ on:
       # merged pin PR does not trigger another publish.
       - "!plugins/prodeng/skills/prodeng-workflow/tools-image.json"
       - "!docker/README.md"
+  # dry_run=true rehearses the gate chain (Trivy scans, SBOM chain, tool
+  # measurement, container smoke) against the locally loaded image while
+  # push, :latest promotion, attestations, code-scanning SARIF, and the
+  # digest-lock PR stay skipped.
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Rehearse the gate chain without publishing or locking
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: publish-prodeng-images
@@ -91,7 +101,10 @@ jobs:
           file: docker/prodeng-tools.Dockerfile
           build-args: |
             IMAGE_REVISION=${{ github.sha }}
-          push: true
+          # dry_run loads the image into the local daemon (single-platform
+          # build) instead of pushing so the gate chain can rehearse it.
+          push: ${{ inputs.dry_run != true }}
+          load: ${{ inputs.dry_run }}
           # Immutable tag only: a failing image must never serve :latest;
           # the tag is promoted after every gate passes.
           tags: |
@@ -101,6 +114,25 @@ jobs:
           # imports already degrade to a miss rather than an error, so
           # ignore-error applies to cache-to only.
           cache-to: type=gha,mode=max,ignore-error=true
+      - name: Resolve scan image reference
+        id: scan-ref
+        env:
+          BUILT_DIGEST: ${{ steps.tools.outputs.digest }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # Push runs scan the exact pushed digest — the content the SBOM
+          # and provenance attestations bind to. A dry_run build only loads
+          # into the local daemon, so retag it under a slash-free local name
+          # the measurement probe also accepts.
+          if [ "$DRY_RUN" = "true" ]; then
+            docker tag \
+              "ghcr.io/${IMAGE_OWNER}/prodeng-tools:${GITHUB_SHA}-tools" \
+              "prodeng-tools:${GITHUB_SHA}-rehearsal"
+            echo "ref=prodeng-tools:${GITHUB_SHA}-rehearsal" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=ghcr.io/${IMAGE_OWNER}/prodeng-tools@${BUILT_DIGEST}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Scan tools image (Trivy SARIF)
         id: trivy-scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -109,8 +141,8 @@ jobs:
         with:
           scan-type: image
           # Scan the exact pushed digest — the content the SBOM and
-          # provenance attestations bind to.
-          scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools@${{ steps.tools.outputs.digest }}
+          # provenance attestations bind to (the rehearsal tag in dry_run).
+          scan-ref: ${{ steps.scan-ref.outputs.ref }}
           version: v0.75.0
           scanners: vuln,secret,misconfig
           severity: CRITICAL,HIGH
@@ -128,7 +160,7 @@ jobs:
           TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
         with:
           scan-type: image
-          scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools@${{ steps.tools.outputs.digest }}
+          scan-ref: ${{ steps.scan-ref.outputs.ref }}
           version: v0.75.0
           scanners: vuln,secret,misconfig,license
           ignore-unfixed: false
@@ -137,7 +169,8 @@ jobs:
           output: trivy-image.json
           skip-setup-trivy: true
       - name: Upload Trivy SARIF
-        if: always() && hashFiles('trivy-image.sarif') != ''
+        # A rehearsal must not file code-scanning alerts.
+        if: always() && inputs.dry_run != true && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           sarif_file: trivy-image.sarif
@@ -153,6 +186,7 @@ jobs:
         if: failure() && hashFiles('trivy-image.json') != ''
         run: python3 scripts/trivy_gate_summary.py trivy-image.json >> "$GITHUB_STEP_SUMMARY"
       - name: Attest tools image provenance
+        if: inputs.dry_run != true
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
@@ -162,16 +196,20 @@ jobs:
       - name: Resolve tools digest
         env:
           BUILT_DIGEST: ${{ steps.tools.outputs.digest }}
+          SCAN_IMAGE_REF: ${{ steps.scan-ref.outputs.ref }}
         run: |
           set -euo pipefail
           case "$BUILT_DIGEST" in sha256:*) ;; *) echo "invalid tools digest: $BUILT_DIGEST" >&2; exit 1 ;; esac
-          TOOLS_REF="ghcr.io/${IMAGE_OWNER}/prodeng-tools@${BUILT_DIGEST}"
+          # The pushed digest reference on publish; the local rehearsal tag
+          # on dry_run.
           TOOLS_TAG="${GITHUB_SHA}-tools"
-          printf 'TOOLS_REF=%s\nTOOLS_DIGEST=%s\nTOOLS_TAG=%s\n' "$TOOLS_REF" "${TOOLS_REF##*@}" "$TOOLS_TAG" >> "$GITHUB_ENV"
+          printf 'TOOLS_REF=%s\nTOOLS_DIGEST=%s\nTOOLS_TAG=%s\n' "$SCAN_IMAGE_REF" "$BUILT_DIGEST" "$TOOLS_TAG" >> "$GITHUB_ENV"
       - name: Generate tools SPDX SBOM
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         env:
-          SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: registry
+          # Registry pulls on publish; a dry_run image exists only in the
+          # local docker daemon.
+          SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: ${{ inputs.dry_run == true && 'docker' || 'registry' }}
           TMPDIR: ${{ runner.temp }}
           SYFT_FILE_METADATA_SELECTION: none
         with:
@@ -210,6 +248,7 @@ jobs:
               raise SystemExit("tools SBOM must use SPDX-2.3")
           PY
       - name: Attest tools SBOM
+        if: inputs.dry_run != true
         id: attest_sbom
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
@@ -235,11 +274,16 @@ jobs:
       - name: Verify published tools smoke
         env:
           TOOLS_REF: ${{ env.TOOLS_REF }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/prodeng-smoke"
           chmod 0777 "$RUNNER_TEMP/prodeng-smoke"
-          docker pull "$TOOLS_REF"
+          # A dry_run image already exists in the local daemon; there is no
+          # registry ref to pull.
+          if [ "$DRY_RUN" != "true" ]; then
+            docker pull "$TOOLS_REF"
+          fi
           docker run --rm --user 10001:10001 \
             --volume "$RUNNER_TEMP/prodeng-smoke:/tmp/prodeng-smoke" "$TOOLS_REF" \
             sh -c 'set -eu
@@ -263,11 +307,14 @@ jobs:
         # Every gate above passed: copy the verified manifest to :latest
         # server-side (attestations and the SBOM keep binding the digest).
         # A gate failure leaves the previous good :latest untouched.
+        if: inputs.dry_run != true
         run: |
           docker buildx imagetools create \
             --tag "ghcr.io/${IMAGE_OWNER}/prodeng-tools:latest" \
             "$TOOLS_REF"
       - name: Record published image summary
+        # The dry-run summary below carries the rehearsal details instead.
+        if: inputs.dry_run != true
         env:
           TRIVY_OUTCOME: ${{ steps.trivy-scan.outcome }}
           ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
@@ -286,6 +333,8 @@ jobs:
             echo "- **workflow run**: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Update digest lock and merge PR
+        # dry_run stops at the summary: no lock PR, no post-merge dispatches.
+        if: inputs.dry_run != true
         env:
           GH_TOKEN: ${{ github.token }}
           ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
@@ -369,3 +418,19 @@ jobs:
               --created ">=$marker" --json url --jq '.[0].url // empty' || true)
             [ -n "$url" ] && echo "- $wf run: $url" >> "$GITHUB_STEP_SUMMARY"
           done
+      - name: Dry-run rehearsal summary
+        if: always() && inputs.dry_run == true
+        run: |
+          {
+            echo "## Publish dry-run rehearsal"
+            echo
+            echo "Built the tools image and ran the gate chain (Trivy scans,"
+            echo "SBOM generation/packaging/guard, tool measurement, container"
+            echo "smoke) against the local rehearsal tag \`$TOOLS_REF\`."
+            echo "Skipped irreversible steps:"
+            echo
+            echo "- push of the immutable tag and :latest promotion"
+            echo "- build-provenance and SBOM attestations"
+            echo "- Trivy SARIF upload to code scanning"
+            echo "- digest-lock PR and post-merge workflow dispatches"
+          } >> "$GITHUB_STEP_SUMMARY"
