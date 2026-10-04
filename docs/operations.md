@@ -101,13 +101,19 @@ Three layers were adopted after a comparative evaluation of Lynis,
   (`category: trivy-prodeng-tools`) and a full JSON report as an artifact.
   The action is SHA-pinned and `version:` is explicit — the March 2026
   Trivy supply-chain compromise made both non-negotiable.
-- **Weekly audit** (`container-audit.yml`, Mondays 03:02 UTC): pulls the
-  pinned digest from `docker/image-digests.json`, re-scans with a fresh
-  vulnerability DB (new CVEs against the frozen image), runs the Docker
-  CIS compliance report, runs an informational in-image Lynis 3.1.7
-  audit, aggregates `container-hardening.json` (artifact), and
+- **Weekly audit** (`container-audit.yml`, Mondays 03:17 UTC, also on
+  pushes to its inputs): resolves the `prodeng_tools` entry of
+  `docker/image-digests.json` explicitly (no positional key selection),
+  pulls it with retry, re-scans with a fresh vulnerability DB (new CVEs
+  against the frozen image) backed by a shared weekly Trivy DB cache,
+  runs the Docker CIS compliance report with one content-keyed retry,
+  runs an informational in-image Lynis 3.1.7
+  audit, aggregates `container-hardening.json` via
+  `scripts/container_hardening_report.py` (artifact), and
   edits/creates a "Container hardening report" issue. The issue closes
-  automatically when fixable HIGH/CRITICAL findings reach zero. The
+  automatically when fixable HIGH/CRITICAL findings reach zero. CIS
+  failures whose IDs are documented deferrals render as accepted policy
+  deviations in the issue body. The
   Lynis Hardening Index is recorded as a trend metric only — its
   denominator shifts with container-skipped tests, so it never gates.
 
@@ -178,7 +184,10 @@ criteria and rework remain controlled process/product inputs.
 
 `scripts/check_dependency_updates.py` compares direct/transitive Python
 dependencies, uv, Python, pinned actions, workflow tools, Docker base
-surfaces, and workflow `git clone --branch` pins (e.g. the pinned Lynis
+surfaces, direct-download pins inside workflows (GitHub release tarballs
+such as actionlint, sha256-verified PyPI wheels such as zizmor, and
+`version:` tool inputs on aquasecurity actions), and workflow
+`git clone --branch` pins (e.g. the pinned Lynis
 checkout in `container-audit.yml`, compared against the upstream
 repository's latest semver tag). It performs external version queries;
 inspect the generated candidate report and review upstream changelogs
@@ -211,7 +220,7 @@ publishes the package/plugin release after verification.
 
 ## CI runner network auditing
 
-CI and image-publishing jobs use `step-security/harden-runner` in audit-only mode. It observes network egress without blocking requests; per-run insights are available in the GitHub Actions job summary.
+CI and image-publishing jobs use `step-security/harden-runner` in audit-only mode. It observes network egress without blocking requests; per-run insights are available in the GitHub Actions job summary. The digest-lock sweep is the exception: it only talks to the GitHub API, so it runs `egress-policy: block` restricted to `api.github.com` and `github.com`.
 
 ## Repository settings prerequisites
 
@@ -236,7 +245,7 @@ they are recorded here so they survive repository migrations.
 
 ## Digest-lock PR verification
 
-The lock PR's own `pull_request` runs are the single CI path — dispatched runs never satisfy required checks — so the publisher only approves the `action_required` runs and polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge; the digest-lock sweep dispatches the post-merge verification on main once the armed merge lands.
+The lock PR's own `pull_request` runs are the single CI path — dispatched runs never satisfy required checks — so the publisher only approves the `action_required` runs and polls the authoritative required-check set for up to 30 minutes. Non-required failures do not block publishing; a concluded required-check failure or a PR closed without merge fails the job. A PR merged externally triggers the post-merge main workflows without waiting for their results. If required checks remain pending at the deadline, the publisher arms squash auto-merge with branch deletion and exits successfully so branch protection can complete the merge; the digest-lock sweep (`scripts/digest_lock_sweep.sh`, driven by `digest-lock-sweep.yml` under a blocking egress policy) dispatches the post-merge verification on main once the armed merge lands, or when it finds a recent lock merge with no `ci.yml` dispatch since. Post-merge `ci.yml` dispatches pass `-f docker_changed=locked` so the verification run exercises the merged pin through the locked-image path instead of rebuilding the tools image off an empty `github.event.before`.
 
 SPDX generation prefers the GHCR registry source, writes temporary data under
 the runner's temporary directory, and disables file metadata. The publisher
