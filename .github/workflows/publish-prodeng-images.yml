@@ -70,6 +70,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Resolve image owner
         run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - id: trivy-cache
+        run: |
+          set -euo pipefail
+          echo "key=cache-trivy-$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Restore-only: a publishing workflow must not write cache entries
+          # (zizmor cache-poisoning); the weekly container-audit run owns
+          # the save for this shared weekly key.
+          lookup-only: true
+          path: ${{ runner.temp }}/trivy-cache
+          key: ${{ steps.trivy-cache.outputs.key }}
+          restore-keys: cache-trivy-
       - name: Build and publish tools
         id: tools
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -91,6 +104,8 @@ jobs:
       - name: Scan tools image (Trivy SARIF)
         id: trivy-scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
         with:
           scan-type: image
           # Scan the exact pushed digest — the content the SBOM and
@@ -109,6 +124,8 @@ jobs:
         # full report is still emitted on a gate failure.
         if: always() && steps.tools.outcome == 'success'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
         with:
           scan-type: image
           scan-ref: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools@${{ steps.tools.outputs.digest }}
@@ -132,11 +149,14 @@ jobs:
           name: prodeng-tools-trivy
           path: trivy-image.json
           retention-days: 90
+      - name: Summarize tools Trivy gate findings
+        if: failure() && hashFiles('trivy-image.json') != ''
+        run: python3 scripts/trivy_gate_summary.py trivy-image.json >> "$GITHUB_STEP_SUMMARY"
       - name: Attest tools image provenance
         id: attest
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-name: ghcr.io/vibebb/prodeng-tools
+          subject-name: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools
           subject-digest: ${{ steps.tools.outputs.digest }}
           push-to-registry: true
       - name: Resolve tools digest
@@ -193,7 +213,7 @@ jobs:
         id: attest_sbom
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-name: ghcr.io/vibebb/prodeng-tools
+          subject-name: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools
           subject-digest: ${{ steps.tools.outputs.digest }}
           sbom-path: ${{ runner.temp }}/prodeng-tools.spdx.json
           push-to-registry: true
@@ -248,6 +268,10 @@ jobs:
             --tag "ghcr.io/${IMAGE_OWNER}/prodeng-tools:latest" \
             "$TOOLS_REF"
       - name: Record published image summary
+        env:
+          TRIVY_OUTCOME: ${{ steps.trivy-scan.outcome }}
+          ATTESTATION_URL: ${{ steps.attest.outputs.attestation-url }}
+          SBOM_ATTESTATION_URL: ${{ steps.attest_sbom.outputs.attestation-url }}
         run: |
           {
             echo "## prodeng images"
@@ -255,6 +279,10 @@ jobs:
             echo "- **tools**: \`$TOOLS_REF\`"
             echo "- **tools digest**: \`$TOOLS_DIGEST\`"
             echo "- **tools tag**: \`$TOOLS_TAG\`"
+            echo "- **Trivy gate**: ${TRIVY_OUTCOME} (no fixable HIGH/CRITICAL findings)"
+            echo "- **:latest promoted**: \`ghcr.io/${IMAGE_OWNER}/prodeng-tools:latest\` -> \`$TOOLS_DIGEST\`"
+            echo "- **provenance attestation**: ${ATTESTATION_URL}"
+            echo "- **SBOM attestation**: ${SBOM_ATTESTATION_URL}"
             echo "- **workflow run**: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Update digest lock and merge PR
@@ -331,4 +359,13 @@ jobs:
           pr_url=$(retry gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --title "Update prodeng image digest lock" --body "$body")
           echo "pin PR: $pr_url" >> "$GITHUB_STEP_SUMMARY"
+          marker=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           bash scripts/publish_image_pin_pr.sh "$pr_url" "$branch" "" "ci.yml locked-image-check.yml"
+          # Best-effort: surface the post-merge verification runs the pin
+          # script just dispatched so the summary links them directly.
+          for wf in ci.yml locked-image-check.yml; do
+            url=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf" \
+              --branch main --event workflow_dispatch \
+              --created ">=$marker" --json url --jq '.[0].url // empty' || true)
+            [ -n "$url" ] && echo "- $wf run: $url" >> "$GITHUB_STEP_SUMMARY"
+          done
