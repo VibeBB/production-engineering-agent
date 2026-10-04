@@ -63,8 +63,8 @@ dispatch_main_workflows() {
   for workflow in "${workflows[@]}"; do
     assert_pin_pr_merged
     local -a command=(gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main)
-    if [ "$workflow" = ci.yml ] && [ -n "$BASE_SHA" ]; then
-      command+=(-f "base_sha=$BASE_SHA")
+    if [ "$workflow" = ci.yml ]; then
+      command+=(-f "docker_changed=locked")
     fi
     if ! retry "${command[@]}"; then
       assert_pin_pr_merged
@@ -134,7 +134,7 @@ required_check_counts() {
 read_required_checks() {
   local checks_json checks_error
   : > "$REQUIRED_CHECKS_STDERR_FILE"
-  checks_json=$(gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required \
+  checks_json=$(retry gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required \
     --json name,state,bucket 2>"$REQUIRED_CHECKS_STDERR_FILE") || true
   if [ -n "$checks_json" ] &&
     jq -e 'type == "array"' >/dev/null 2>&1 <<< "$checks_json"; then
