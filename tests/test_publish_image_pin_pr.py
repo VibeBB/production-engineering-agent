@@ -271,7 +271,12 @@ def test_publish_workflow_uses_pin_helper_and_sbom_guard() -> None:
     assert "REQUIRED_WAIT_ATTEMPTS=" in helper and ":-60}" in helper
     assert "REQUIRED_WAIT_SECONDS=" in helper and ":-15}" in helper
     assert 'gh pr checks "$PR_URL" --repo "$GITHUB_REPOSITORY" --required' in helper
-    assert "SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: registry" in workflow
+    # Syft pulls from the registry on publish and from the local docker
+    # daemon under a dry_run rehearsal.
+    assert (
+        "SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: "
+        "${{ inputs.dry_run == true && 'docker' || 'registry' }}" in workflow
+    )
     assert "TMPDIR: ${{ runner.temp }}" in workflow
     assert "SYFT_FILE_METADATA_SELECTION: none" in workflow
     assert "Guard tools SPDX SBOM size" in workflow
@@ -281,3 +286,36 @@ def test_publish_workflow_uses_pin_helper_and_sbom_guard() -> None:
     assert generate < guard < validate
     assert 'df -h /tmp "$RUNNER_TEMP"' in workflow
     assert "16777216" in workflow
+
+
+def test_publish_dry_run_skips_only_irreversible_steps() -> None:
+    workflow = (
+        Path(__file__).parents[1] / ".github/workflows/publish-prodeng-images.yml"
+    ).read_text(encoding="utf-8")
+    assert "      dry_run:\n        description:" in workflow
+    for name in (
+        "Promote :latest",
+        "Attest tools image provenance",
+        "Attest tools SBOM",
+        "Update digest lock and merge PR",
+    ):
+        step = workflow.split(f"      - name: {name}\n", 1)[1].split("      - name:", 1)[0]
+        assert "if: inputs.dry_run != true" in step, name
+    assert "push: ${{ inputs.dry_run != true }}" in workflow
+    assert "load: ${{ inputs.dry_run }}" in workflow
+    sarif = workflow.split("      - name: Upload Trivy SARIF\n", 1)[1].split("      - name:", 1)[0]
+    assert "inputs.dry_run != true" in sarif
+    # The gate chain still runs: Trivy scans, SBOM generation, measurement,
+    # and the container smoke carry no dry_run skip.
+    for name in (
+        "Scan tools image (Trivy SARIF)",
+        "Scan tools image (Trivy JSON)",
+        "Generate tools SPDX SBOM",
+        "Measure published tools",
+        "Verify published tools smoke",
+    ):
+        step = workflow.split(f"      - name: {name}\n", 1)[1].split("      - name:", 1)[0]
+        assert "inputs.dry_run != true" not in step, name
+    # Both Trivy scans must resolve through the dry_run-aware scan-ref
+    # (a third use wires it into the TOOLS_REF env).
+    assert workflow.count("${{ steps.scan-ref.outputs.ref }}") >= 2
