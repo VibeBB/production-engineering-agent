@@ -416,7 +416,9 @@ jobs:
             url=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf" \
               --branch main --event workflow_dispatch \
               --created ">=$marker" --json url --jq '.[0].url // empty' || true)
-            [ -n "$url" ] && echo "- $wf run: $url" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$url" ]; then
+              echo "- $wf run: $url" >> "$GITHUB_STEP_SUMMARY"
+            fi
           done
       - name: Dry-run rehearsal summary
         if: always() && inputs.dry_run == true
