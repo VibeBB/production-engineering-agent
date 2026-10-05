@@ -1,5 +1,7 @@
 # Production Engineering Agent
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VibeBB/production-engineering-agent)
+
 `prodeng` is the deterministic production-engineering core and OpenHands
 plugin for turning approved product requirements and sibling design
 artifacts into a manufacturing plan: control plan, inspection and sampling
