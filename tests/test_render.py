@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import asyncio
 import hashlib
 import json
@@ -13,6 +14,7 @@ from mcp import types
 from PIL import Image
 
 from prodeng import mcp_server
+from prodeng import render as render_module
 from prodeng.contract import ProdengContract, load_contract
 from prodeng.projections import write_projections
 from prodeng.render import MAX_HEIGHT, RED, render_sheets
@@ -62,6 +64,8 @@ def test_rendered_sheets_are_deterministic_and_index_hashes_sources(
     }
     assert index["schema_version"] == 1
     assert index["product"] == "smart-kettle"
+    assert isinstance(index["font"], str)
+    assert index["font"]
     for item in index["renders"]:
         image_path = tmp_path / "first" / item["path"]
         assert hashlib.sha256(image_path.read_bytes()).hexdigest() == item["sha256"]
@@ -73,6 +77,69 @@ def test_rendered_sheets_are_deterministic_and_index_hashes_sources(
     assert sum(name.startswith("work-instruction-") for name in first) == operation_count
     assert "factory-test-spec" in first
     assert "line-balance" in first
+
+
+def test_renderer_string_literals_are_ascii() -> None:
+    source_path = Path(__file__).parents[1] / "src" / "prodeng" / "render.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"))
+    string_literals = [
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    ]
+
+    assert all(value.isascii() for value in string_literals)
+
+
+def test_nice_axis_ticks_have_readable_integer_labels() -> None:
+    step, ticks = render_module._nice_axis_ticks(80.64)
+
+    assert step in (10, 20)
+    assert 4 <= len(ticks) <= 8
+    assert ticks[-1] >= 80.64 * 1.05
+    assert all(value.is_integer() for value in ticks)
+    assert all(render_module._axis_tick_label(value, step).isdigit() for value in ticks)
+    assert render_module._takt_utilization_label(32, 72) == "32 s (44%)"
+
+
+def test_multivalue_cells_use_newlines_and_line_balance_summary() -> None:
+    contract = load_contract(EXAMPLE / "smart-kettle.prodeng.json")
+    ftm = contract.factory_test_mode
+    assert ftm is not None
+
+    conditions = next(row[2] for row in render_module._ftm_rows(contract) if row[1] == "Conditions")
+    assert conditions.splitlines() == ftm.entry.conditions
+    interface = next(row[2] for row in render_module._ftm_rows(contract) if row[0] == "Interface")
+    assert interface.startswith(f"Settings: {ftm.interface.settings}\nNets:\n")
+    assert interface.splitlines()[2:] == sorted(ftm.interface.nets)
+    assert ".;" not in interface
+
+    operation = contract.operations[0]
+    element = operation.work_elements[0].model_copy(
+        update={
+            "key_points": ["First point.", "Second point."],
+            "reasons": ["First reason.", "Second reason."],
+        }
+    )
+    updated_operation = operation.model_copy(update={"work_elements": [element]})
+    assert render_module._operation_rows(updated_operation)[0][1:] == (
+        "First point.\nSecond point.",
+        "First reason.\nSecond reason.",
+    )
+
+    controls = [contract.inspections[0].id, contract.inspections[1].id]
+    failure_mode = contract.failure_modes[0].model_copy(update={"controls": controls})
+    updated_contract = contract.model_copy(update={"failure_modes": [failure_mode]})
+    assert render_module._pfmea_rows(updated_contract)[0][-1] == "\n".join(sorted(controls))
+
+    efficiency_line, bottleneck_line = render_module._line_balance_summary(
+        contract,
+        render_module.line_balance_efficiency(contract),
+    )
+    assert efficiency_line == (
+        "Balance efficiency 30.1% (sum of cycle times / (operations x takt))"
+    )
+    assert bottleneck_line == "Bottleneck OP04 - Mechanical assembly: 32 s (44% of takt 72 s)"
 
 
 def test_line_balance_highlights_over_takt_operations(tmp_path: Path) -> None:

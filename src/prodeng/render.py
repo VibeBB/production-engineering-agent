@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import tempfile
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -23,6 +25,11 @@ PAGE_HEADER_HEIGHT = 130
 TABLE_HEADER_HEIGHT = 62
 LINE_HEIGHT = 26
 FONT_ENV = "PRODENG_RENDER_FONT"
+FONT_FALLBACKS = (
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+    Path("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
+)
 
 type Color = tuple[int, int, int]
 type RowShade = Callable[[tuple[str, ...]], Color | None]
@@ -51,10 +58,24 @@ class _TableRow:
         return max(len(lines) for lines in self.wrapped) * LINE_HEIGHT + 20
 
 
+@lru_cache(maxsize=16)
+def _font_file(override: str | None) -> Path | None:
+    candidates = ([Path(override).expanduser()] if override else []) + list(FONT_FALLBACKS)
+    for candidate in candidates:
+        if not candidate.is_file():
+            continue
+        try:
+            ImageFont.truetype(str(candidate), size=18)
+        except OSError:
+            continue
+        return candidate
+    return None
+
+
 def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    override = os.environ.get(FONT_ENV)
-    if override and Path(override).is_file():
-        return ImageFont.truetype(override, size=size)
+    font_file = _font_file(os.environ.get(FONT_ENV))
+    if font_file is not None:
+        return ImageFont.truetype(str(font_file), size=size)
     return ImageFont.load_default(size=size)
 
 
@@ -100,6 +121,36 @@ def _widths(weights: Sequence[int]) -> list[int]:
     result = [total * weight // denominator for weight in weights]
     result[-1] += total - sum(result)
     return result
+
+
+def _nice_axis_ticks(max_value: float) -> tuple[float, list[float]]:
+    target = max_value * 1.05
+    exponent = math.floor(math.log10(target))
+    candidates: list[tuple[float, float]] = []
+    for power in range(exponent - 4, exponent + 2):
+        magnitude = 10**power
+        for multiplier in (1, 2, 5):
+            step = multiplier * magnitude
+            axis_max = math.ceil(target / step) * step
+            count = round(axis_max / step) + 1
+            if 4 <= count <= 8:
+                candidates.append((axis_max, step))
+    if not candidates:
+        raise ValueError("could not find readable line-balance axis ticks")
+    axis_max, step = min(candidates)
+    tick_count = round(axis_max / step)
+    return step, [index * step for index in range(tick_count + 1)]
+
+
+def _axis_tick_label(value: float, step: float) -> str:
+    if math.isclose(step, round(step), rel_tol=0.0, abs_tol=1e-10):
+        return str(round(value))
+    return f"{value:g}"
+
+
+def _takt_utilization_label(cycle_time_s: float, takt_s: float) -> str:
+    utilization = round(cycle_time_s / takt_s * 100)
+    return f"{cycle_time_s:g} s ({utilization}%)"
 
 
 def _prepare_rows(
@@ -264,9 +315,9 @@ def _control_plan_rows(contract: ProdengContract) -> list[tuple[str, ...]]:
             sample_text = f"AQL {sampling.aql:g}, level {sampling.level}"
         rows.append(
             (
-                f"{characteristic.id} — {characteristic.description}",
+                f"{characteristic.id} - {characteristic.description}",
                 characteristic.classification,
-                f"{operation.id} — {operation.name}",
+                f"{operation.id} - {operation.name}",
                 inspection.method,
                 sample_text,
                 inspection.equipment,
@@ -288,7 +339,7 @@ def _pfmea_rows(contract: ProdengContract) -> list[tuple[str, ...]]:
             str(item.occurrence),
             str(item.detection),
             str(item.severity * item.occurrence * item.detection),
-            "; ".join(sorted(item.controls)),
+            "\n".join(sorted(item.controls)),
         )
         for item in sorted(contract.failure_modes, key=lambda item: item.id)
     ]
@@ -307,8 +358,8 @@ def _operation_rows(operation: Operation) -> list[tuple[str, ...]]:
         rows.append(
             (
                 f"{index}. {element.step}",
-                "; ".join(key_points),
-                "; ".join(element.reasons),
+                "\n".join(key_points),
+                "\n".join(element.reasons),
             )
         )
     rows.extend(("Safety hazard", f"SAFETY: {hazard}", "") for hazard in operation.safety_hazards)
@@ -329,6 +380,10 @@ def _is_safety_point(value: str) -> bool:
     )
 
 
+def _display_list(items: Sequence[str]) -> str:
+    return "\n".join(items) if items else "none"
+
+
 def _ftm_rows(contract: ProdengContract) -> list[tuple[str, ...]]:
     ftm = contract.factory_test_mode
     if ftm is None:
@@ -336,22 +391,23 @@ def _ftm_rows(contract: ProdengContract) -> list[tuple[str, ...]]:
     rows = [
         ("Entry", "Method", ftm.entry.method),
         ("Entry", "Detail", ftm.entry.detail),
-        ("Entry", "Conditions", "; ".join(ftm.entry.conditions)),
+        ("Entry", "Conditions", "\n".join(ftm.entry.conditions)),
         ("Field lockout", ftm.field_lockout.method, ftm.field_lockout.detail),
         (
             "Interface",
             ftm.interface.transport,
-            f"{ftm.interface.settings}; nets: {', '.join(sorted(ftm.interface.nets)) or 'none'}",
+            f"Settings: {ftm.interface.settings}\nNets:\n"
+            + _display_list(sorted(ftm.interface.nets)),
         ),
     ]
     command_rows = [
         (
             "Command",
-            f"{command.id} — {command.name}",
-            f"{command.request} -> {command.response_pattern}; "
-            f"timeout {command.timeout_ms} ms; "
-            f"measures {', '.join(sorted(command.measures_nets)) or 'none'}; "
-            f"covers {', '.join(sorted(command.covers)) or 'none'}",
+            f"{command.id} - {command.name}",
+            f"{command.request} -> {command.response_pattern}\n"
+            f"Timeout: {command.timeout_ms} ms\n"
+            f"Measures:\n{_display_list(sorted(command.measures_nets))}\n"
+            f"Covers:\n{_display_list(sorted(command.covers))}",
         )
         for command in sorted(ftm.commands, key=lambda item: item.id)
     ]
@@ -379,6 +435,32 @@ def _ftm_rows(contract: ProdengContract) -> list[tuple[str, ...]]:
     return rows
 
 
+def _line_balance_summary(
+    contract: ProdengContract,
+    efficiency: float | None,
+) -> tuple[str, str]:
+    efficiency_text = (
+        "Balance efficiency unknown"
+        if efficiency is None
+        else f"Balance efficiency {efficiency * 100:.1f}%"
+    )
+    efficiency_text += " (sum of cycle times / (operations x takt))"
+    bottleneck = max(
+        (operation for operation in contract.operations if operation.cycle_time_s is not None),
+        key=lambda operation: operation.cycle_time_s or 0.0,
+        default=None,
+    )
+    if bottleneck is None or bottleneck.cycle_time_s is None:
+        return efficiency_text, "Bottleneck unknown"
+    takt = contract.volume.takt_s
+    utilization = round(bottleneck.cycle_time_s / takt * 100)
+    bottleneck_text = (
+        f"Bottleneck {bottleneck.id} - {bottleneck.name}: "
+        f"{bottleneck.cycle_time_s:g} s ({utilization}% of takt {takt:g} s)"
+    )
+    return efficiency_text, bottleneck_text
+
+
 def _render_line_balance(
     contract: ProdengContract,
     render_dir: Path,
@@ -386,8 +468,11 @@ def _render_line_balance(
 ) -> list[Path]:
     operations = sorted(contract.operations, key=lambda item: item.id)
     takt = contract.volume.takt_s
-    known = [operation.cycle_time_s for operation in operations if operation.cycle_time_s]
-    axis_max = max([takt, *known]) * 1.12
+    known = [
+        operation.cycle_time_s for operation in operations if operation.cycle_time_s is not None
+    ]
+    step, ticks = _nice_axis_ticks(max([takt, *known]))
+    axis_max = ticks[-1]
     plot_left = 360
     plot_right = CANVAS_WIDTH - MARGIN
     plot_width = plot_right - plot_left
@@ -408,14 +493,21 @@ def _render_line_balance(
         )
         small = _font(18)
         label_font = _font(18)
-        efficiency_text = (
-            "Balance efficiency: unknown"
-            if efficiency is None
-            else f"Balance efficiency: {efficiency * 100:.1f}%"
+        efficiency_text, bottleneck_text = _line_balance_summary(contract, efficiency)
+        draw.text(
+            (MARGIN, PAGE_HEADER_HEIGHT + 12),
+            efficiency_text,
+            font=small,
+            fill=INK,
         )
-        draw.text((MARGIN, PAGE_HEADER_HEIGHT + 20), efficiency_text, font=small, fill=INK)
-        for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
-            x = plot_left + round(plot_width * fraction)
+        draw.text(
+            (MARGIN, PAGE_HEADER_HEIGHT + 39),
+            bottleneck_text,
+            font=small,
+            fill=INK,
+        )
+        for value in ticks:
+            x = plot_left + round(value / axis_max * plot_width)
             draw.line((x, plot_top - 14, x, axis_y), fill=(226, 232, 237), width=1)
         takt_x = plot_left + round(takt / axis_max * plot_width)
         draw.line((takt_x, plot_top - 14, takt_x, axis_y), fill=RED, width=3)
@@ -423,7 +515,7 @@ def _render_line_balance(
         draw.text((takt_x + 5, plot_top - 39), takt_label, font=small, fill=RED)
         for index, operation in enumerate(page_operations):
             y = plot_top + index * row_height
-            label = f"{operation.id} — {operation.name}"
+            label = f"{operation.id} - {operation.name}"
             lines = _text_lines(draw, label, label_font, plot_left - MARGIN - 20)
             draw.multiline_text(
                 (MARGIN, y + 10),
@@ -442,18 +534,22 @@ def _render_line_balance(
                     radius=4,
                     fill=bar_color,
                 )
+                bar_label = _takt_utilization_label(operation.cycle_time_s, takt)
+                label_width = draw.textlength(bar_label, font=small)
                 draw.text(
-                    (min(bar_end + 8, plot_right - 75), y + 13),
-                    f"{operation.cycle_time_s:g} s",
+                    (min(bar_end + 8, plot_right - label_width - 8), y + 13),
+                    bar_label,
                     font=small,
                     fill=INK,
                 )
         draw.line((plot_left, axis_y, plot_right, axis_y), fill=INK, width=2)
-        for fraction in (0.0, 0.25, 0.5, 0.75, 1.0):
-            x = plot_left + round(plot_width * fraction)
-            value = axis_max * fraction
+        for value in ticks:
+            x = plot_left + round(value / axis_max * plot_width)
             draw.line((x, axis_y - 5, x, axis_y + 5), fill=INK, width=1)
-            draw.text((x - 15, axis_y + 12), f"{value:g}", font=small, fill=INK)
+            tick_label = _axis_tick_label(value, step)
+            tick_width = draw.textlength(tick_label, font=small)
+            label_x = min(max(plot_left, x - round(tick_width / 2)), plot_right - tick_width)
+            draw.text((label_x, axis_y + 12), tick_label, font=small, fill=INK)
         draw.text((plot_right - 70, axis_y + 40), "seconds", font=small, fill=INK)
         path_name = (
             "line-balance.png" if len(operation_pages) == 1 else f"line-balance-p{page_number}.png"
@@ -559,7 +655,7 @@ def render_sheets(contract: ProdengContract, out_dir: Path) -> dict[str, Path]:
                     contract,
                     render_dir,
                     key,
-                    f"Work instruction — {operation.id} {operation.name}",
+                    f"Work instruction - {operation.id} {operation.name}",
                     ("Major step", "Key points", "Reasons"),
                     _operation_rows(operation),
                     (5, 6, 5),
@@ -597,9 +693,11 @@ def render_sheets(contract: ProdengContract, out_dir: Path) -> dict[str, Path]:
                     "source_sha256": source_hash,
                 }
             )
+    font_file = _font_file(os.environ.get(FONT_ENV))
     index = {
         "schema_version": 1,
         "product": contract.product.name,
+        "font": font_file.name if font_file is not None else "pillow-default",
         "renders": sorted(index_rows, key=lambda item: (item["name"], item["path"])),
     }
     (render_dir / "index.json").write_text(
