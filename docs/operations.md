@@ -1,5 +1,25 @@
 # Operations
 
+For the complete guide map, see [Documentation](README.md). This page
+retains the image, launcher, release, and troubleshooting procedures; the
+new [Development](development.md) and [Commands](commands.md) guides cover
+verification and user-facing entry points.
+
+## Authoring, renders, and records
+
+The source of truth is the contract. Use `prodeng author` to validate it,
+run gates, write projections and reports, and derive sibling requests.
+Rendering is opt-in in the CLI (`--render`) and can also be run separately
+with `prodeng render`; MCP authoring renders by default. Inspect each PNG
+before handoff and record a vision review for every image. Generated files
+are not manually edited.
+
+Important choices, stage impressions, and image reviews are appended through
+the record tools to `observations/prodeng/`. The Stop hook enforces the
+configured record policy; `prodeng record status` reports counts and the
+last Stop-hook result. For exact schemas and limits, see
+[Records and vision](records-and-vision.md).
+
 ## SBOM attestations
 
 `publish-prodeng-images.yml` generates and attests a package-level SPDX-2.3

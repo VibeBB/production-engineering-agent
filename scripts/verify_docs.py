@@ -16,6 +16,26 @@ EXPECTED_ADRS = (
     "0003-sibling-cooperation-via-contracts.md",
     "0004-factory-test-mode-contract.md",
     "0005-work-instructions-twi.md",
+    "0006-attest-published-tools-images.md",
+    "0007-deterministic-vision-renders.md",
+    "0008-ux-liaison-v2-and-vrp-adoption.md",
+)
+EXPECTED_DOC_PAGES = (
+    "README.md",
+    "architecture.md",
+    "workflow.md",
+    "agents.md",
+    "skills.md",
+    "commands.md",
+    "mcp.md",
+    "hooks.md",
+    "contracts.md",
+    "records-and-vision.md",
+    "sister-cooperation.md",
+    "performance-and-limits.md",
+    "operations.md",
+    "development.md",
+    "improvement-notes.md",
 )
 
 
@@ -48,8 +68,20 @@ def check_adr_index() -> list[str]:
     return errors
 
 
+def check_required_doc_pages() -> list[str]:
+    index = (ROOT / "docs/README.md").read_text(encoding="utf-8")
+    errors: list[str] = []
+    for name in EXPECTED_DOC_PAGES:
+        page = ROOT / "docs" / name
+        if not page.is_file():
+            errors.append(f"missing required documentation page docs/{name}")
+        elif name != "README.md" and f"({name})" not in index:
+            errors.append(f"docs/README.md: missing required page docs/{name}")
+    return errors
+
+
 def main() -> int:
-    errors = check_links() + check_adr_index()
+    errors = check_links() + check_adr_index() + check_required_doc_pages()
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1

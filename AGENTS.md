@@ -1,9 +1,11 @@
 # Agent Working Agreement
 
 This repository contains the deterministic `prodeng` production-engineering
-core and its OpenHands plugin. `docs/` describes architecture and operation;
-`docs/adr/` records design decisions; the Pydantic contract in
-`src/prodeng/contract.py` is the manufacturing-plan source of truth.
+core and its OpenHands plugin. The [documentation index](docs/README.md)
+maps the architecture, workflow, agents, skills, CLI/MCP interfaces, hooks,
+contracts, records, operations, and development guides. `docs/adr/` records
+design decisions; the Pydantic contract in `src/prodeng/contract.py` is the
+manufacturing-plan source of truth.
 
 ## Invariants
 
@@ -15,8 +17,15 @@ core and its OpenHands plugin. `docs/` describes architecture and operation;
 - LLM and vision outputs are L2 advisory. They can identify evidence gaps
   or propose a sibling request but cannot override a gate.
 - Sibling cooperation is through JSON artifacts, SHA-256 provenance, and
-  OpenHands `task_tool_set` delegation. Never import sibling packages or edit their
-  owned source artifacts directly.
+  OpenHands `task_tool_set` delegation, including validated inbound
+  UX-creator SLP v2 requests and hash-bound replies. Never import sibling
+  packages or edit their owned source artifacts directly.
+- VRP v1 stores decisions, stage impressions, and vision reviews in
+  `observations/prodeng/`. The Stop hook enforces per-session record debt;
+  write records through the typed MCP/CLI writers, never by editing logs.
+- Production-sheet PNGs are deterministic views, not gate inputs. Inspect
+  every rendered image and record its vision review; do not use a visual
+  judgment to override a deterministic gate.
 - Safety/certification values must be traceable to an applicable standard
   and the product certification procedure. Do not invent voltages, leakage
   limits, bond resistance limits, or rework acceptance.
@@ -31,6 +40,10 @@ image through `plugins/prodeng/scripts/prodeng_launcher.py`. The launcher
 does not fall back to host execution. Do not create placeholder
 `tools-image.json` or `docker/image-digests.json`; the publish workflow
 creates digest locks after an image is published.
+
+`src/prodeng/render.py` owns contract-derived production-sheet renders;
+`src/prodeng/ux_liaison.py` validates UX-creator SLP v2 inbox and response
+files. Neither visual review nor liaison status changes the gate verdict.
 
 Agents declare their hooks explicitly because hooks do not propagate to
 sub-agents. Delegate with the OpenHands `task_tool_set` tool. AgentDefinitions do not
