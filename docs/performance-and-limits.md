@@ -51,6 +51,11 @@ it does not include outer JSON-RPC or transport framing.
   font candidates, then Pillow's default. The bundled/default font may lack
   non-Latin glyphs; use a suitable font override when multilingual image
   output is required.
+- A digest-locked tools image published before Pillow was added can still run
+  authoring with rendering enabled: renders are skipped with a diagnostic
+  reason, while explicit render commands fail clearly. Rendering requires a
+  newly published image containing Pillow and an updated
+  `docker/image-digests.json` lock.
 - Pillow version is part of byte determinism. Identical inputs and the same
   Pillow version produce deterministic PNG bytes; different renderer/font
   environments are not claimed to produce identical pixels.

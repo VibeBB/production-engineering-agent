@@ -102,6 +102,12 @@ placeholder lock. Before a real lock exists, the plugin launcher prints
 than falling back to host Python. `doctor --warn` is the exception for
 session startup: it reports a warning and returns zero.
 
+Older digest-locked images may not include Pillow. In that case doctor reports
+Pillow as missing, authoring requests with rendering enabled continue with
+`render_skipped`, and explicit render commands fail with a clear error.
+Rendering becomes available after an image containing Pillow is published and
+the digest lock is updated.
+
 Build/check the image after an authoritative digest is available:
 
 ```bash

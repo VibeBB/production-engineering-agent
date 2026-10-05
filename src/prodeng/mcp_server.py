@@ -15,6 +15,7 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
 from . import __version__
+from ._pillow import render_unavailable_reason
 from .contract import contract_json, load_contract
 from .doctor import run_doctor
 from .gates import run_gates
@@ -29,7 +30,6 @@ from .records import (
     record_vision_review,
     records_summary,
 )
-from .render import render_sheets
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -331,27 +331,42 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
             gates = run_gates(contract, contract_path.parent)
             request_paths = write_requests(contract, gates, contract_path.parent, contract_path)
             paths.update(write_report(contract, gates, out_dir, contract_path.parent))
-            render_paths = render_sheets(contract, out_dir) if render_enabled else {}
+            render_paths: dict[str, Path] = {}
+            render_skipped: str | None = None
+            if render_enabled:
+                render_skipped = render_unavailable_reason()
+                if render_skipped is None:
+                    from .render import render_sheets
+
+                    render_paths = render_sheets(contract, out_dir)
             payload = {
                 **gates.to_dict(contract),
                 "stage": "author",
                 "written": {key: str(path) for key, path in paths.items()},
                 "requests": [str(path) for path in request_paths],
-                **(
-                    {
-                        "vision_review_required": [str(path) for path in render_paths.values()],
-                        "next_step": (
-                            "Look at every image and record prodeng_record_vision_review for each "
-                            "(400+ character impression judging accuracy, ambiguity, design intent "
-                            "and whether the shop floor could act on it)."
-                        ),
-                    }
-                    if render_enabled
-                    else {}
-                ),
             }
+            if render_enabled:
+                if render_skipped is not None:
+                    payload["render_skipped"] = render_skipped
+                else:
+                    payload.update(
+                        {
+                            "vision_review_required": [str(path) for path in render_paths.values()],
+                            "next_step": (
+                                "Look at every image and record prodeng_record_vision_review "
+                                "for each (400+ character impression judging accuracy, "
+                                "ambiguity, design intent and whether the shop floor could act "
+                                "on it)."
+                            ),
+                        }
+                    )
         return payload
     if name == "prodeng_render":
+        render_unavailable = render_unavailable_reason()
+        if render_unavailable is not None:
+            raise ValueError(render_unavailable)
+        from .render import render_sheets
+
         out_dir = (
             Path(arguments["out_dir"])
             if arguments.get("out_dir")
