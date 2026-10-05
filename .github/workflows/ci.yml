@@ -12,8 +12,8 @@ on:
         required: false
         default: ""
       docker_changed:
-        # auto detects docker/ changes; build forces a rebuild; locked
-        # reuses the digest-locked published image.
+        # auto detects Docker-context and runtime-dependency changes; build
+        # forces a rebuild; locked reuses the digest-locked published image.
         type: string
         required: false
         default: auto
@@ -77,11 +77,12 @@ jobs:
             exit 0
           fi
           git diff --name-only "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" "$HEAD_SHA" > "$RUNNER_TEMP/changed-files"
-          # docker/image-digests.json is publish-owned: a diff touching only
-          # the lock means a new published pin, which the locked-image path
-          # is meant to exercise — not a reason to rebuild.
+          # The image includes runtime dependencies from pyproject.toml and
+          # uv.lock, so changes to either must exercise an image built from
+          # this revision. The publish-owned digest lock alone is not a
+          # rebuild trigger: its purpose is to test the locked-image path.
           if grep -Ev '^docker/image-digests\.json$' "$RUNNER_TEMP/changed-files" \
-              | grep -Eq '^(docker/|\.dockerignore$)'; then
+              | grep -Eq '^(docker/|\.dockerignore$|pyproject\.toml$|uv\.lock$)'; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"
