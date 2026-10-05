@@ -50,6 +50,10 @@ uv run python scripts/verify_docs.py
 uv run --group sdk-check python scripts/check_plugin_load.py
 ```
 
+`verify_all.py` also accepts `--group` (lint/unit/docker), `--match`, and
+`--shard K/N` to run a subset of a stage's commands so CI can spread one
+stage across jobs; `--list` dumps the tagged command table.
+
 Keep projections byte-deterministic: stable ordering, no timestamps in
 generated reports, UTF-8 text, and one final newline. Use the narrowest
 tests and checks for a change, then the prescribed verification set before
