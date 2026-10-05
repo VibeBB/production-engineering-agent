@@ -7,7 +7,10 @@ allowed-tools:
   - terminal
 ---
 
-Delegate sibling exchange and reconciliation to `prodeng-liaison`. Have it
-call the `prodeng_liaison` MCP tool with `directory`; report open,
-answered, mismatched, orphaned, or malformed responses without treating
-reconciliation as a gate verdict.
+Delegate UX liaison work to `prodeng-liaison`. First have it call
+`prodeng_ux_inbox` and answer every new or stale request with
+`prodeng_ux_respond`; acknowledge dependency-blocked requests when the
+dependencies have valid `done` responses. Then call `prodeng_liaison` with
+`directory` to reconcile outbound prodeng requests and sibling responses.
+Report open, answered, mismatched, stale, orphaned, or malformed responses
+without treating reconciliation as a gate verdict.

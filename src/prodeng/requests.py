@@ -10,25 +10,49 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .contract import ProdengContract
 from .gates import GateReport
+from .records import sha256_file
 
-TARGET_AGENTS = ("circuit", "firmware", "mech", "wire", "ux", "document", "bard")
+TARGET_AGENTS = (
+    "circuit",
+    "firmware",
+    "fpga",
+    "mech",
+    "wire",
+    "ux",
+    "doc",
+    "dashboard",
+    "sim",
+    "bard",
+)
+TargetAgent = Literal[
+    "circuit", "firmware", "fpga", "mech", "wire", "ux", "doc", "dashboard", "sim", "bard"
+]
+_SHA256 = r"^[0-9a-f]{64}$"
 
 
 def _strip_terminal_period(value: str) -> str:
     return value.rstrip().rstrip(".")
 
 
+class RequestInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    path: str = Field(min_length=1)
+    sha256: str = Field(pattern=_SHA256)
+
+
 class ProdengRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     system: Literal["prodeng"] = "prodeng"
-    target_agent: Literal["circuit", "firmware", "mech", "wire", "ux", "document", "bard"]
+    target_agent: TargetAgent
     topic: str = Field(min_length=1)
     risk: Literal["low", "high"]
     rationale: str = Field(min_length=1)
     cites: list[str] = Field(default_factory=list)
     requested_changes: list[str] = Field(min_length=1)
+    inputs: list[RequestInput] = Field(min_length=1)
 
     @model_validator(mode="after")
     def high_risk_has_cite(self) -> ProdengRequest:
@@ -54,6 +78,7 @@ def build_request(
     rationale: str,
     cites: list[str],
     requested_changes: list[str],
+    inputs: list[RequestInput],
 ) -> ProdengRequest:
     if target_agent not in TARGET_AGENTS:
         raise ValueError(f"unknown target_agent {target_agent!r}; expected one of {TARGET_AGENTS}")
@@ -72,6 +97,7 @@ def build_request(
         rationale=rationale,
         cites=sorted(set(cites)),
         requested_changes=requested_changes,
+        inputs=inputs,
     )
 
 
@@ -83,7 +109,11 @@ def _high_risk_cites(contract: ProdengContract, preferred: set[str]) -> list[str
     return selected
 
 
-def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[ProdengRequest]:
+def derive_requests(
+    contract: ProdengContract,
+    gate_report: GateReport,
+    inputs: list[RequestInput],
+) -> list[ProdengRequest]:
     derived: list[ProdengRequest] = []
     ftm = contract.factory_test_mode
     if ftm is not None:
@@ -109,6 +139,7 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
                     "and bounded command protocol."
                 ),
                 cites=_high_risk_cites(contract, cited),
+                inputs=inputs,
                 requested_changes=[
                     f"Entry: {ftm.entry.method}; {_strip_terminal_period(ftm.entry.detail)}; "
                     "conditions: "
@@ -165,6 +196,7 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
                     "test and measurements."
                 ),
                 cites=_high_risk_cites(contract, cites),
+                inputs=inputs,
                 requested_changes=[
                     "Provide test access for nets: "
                     + (", ".join(nets) if nets else "review failing access checks"),
@@ -188,6 +220,7 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
                 risk="low",
                 rationale="Coordinate operation-specific assembly and inspection fixtures.",
                 cites=[],
+                inputs=inputs,
                 requested_changes=[
                     f"{operation.id} ({operation.name}, station {operation.station}): "
                     f"provide or verify fixture(s) {', '.join(sorted(operation.fixtures))}."
@@ -208,6 +241,7 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
                     "Align harness manufacture with production continuity and safety inspection."
                 ),
                 cites=[],
+                inputs=inputs,
                 requested_changes=[
                     (
                         "Provide a harness continuity test table with connector "
@@ -228,13 +262,14 @@ def derive_requests(contract: ProdengContract, gate_report: GateReport) -> list[
     derived.append(
         build_request(
             contract,
-            target_agent="document",
+            target_agent="doc",
             topic="work-instructions",
             risk="low",
             rationale=(
                 "Typeset and control the manufacturing work instructions and QC control plan."
             ),
             cites=[],
+            inputs=inputs,
             requested_changes=[
                 (
                     "Create controlled work instructions from the operation TWI "
@@ -257,9 +292,24 @@ def write_request(request: ProdengRequest, out_dir: Path, name: str) -> Path:
     return path
 
 
-def write_requests(contract: ProdengContract, gate_report: GateReport, out_dir: Path) -> list[Path]:
+def write_requests(
+    contract: ProdengContract,
+    gate_report: GateReport,
+    out_dir: Path,
+    contract_path: Path,
+) -> list[Path]:
+    inputs = [
+        RequestInput(path=contract_path.name, sha256=sha256_file(contract_path)),
+        *[RequestInput(path=item.path, sha256=item.sha256) for item in contract.imports],
+    ]
+    inputs.sort(key=lambda item: item.path)
     paths: list[Path] = []
-    for request in derive_requests(contract, gate_report):
+    for request in derive_requests(contract, gate_report, inputs):
         stem = f"{contract.product.name}-{request.target_agent}-{request.topic}"
         paths.append(write_request(request, out_dir, stem))
+    stale_document = out_dir / (
+        f"{contract.product.name}-document-work-instructions.prodeng-request.json"
+    )
+    if stale_document.exists():
+        stale_document.unlink()
     return paths

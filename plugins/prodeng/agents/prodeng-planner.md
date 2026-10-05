@@ -1,6 +1,6 @@
 ---
 name: prodeng-planner
-description: Plan production readiness from requirements and sibling design artifacts, author the deterministic contract, iterate gates, and derive sibling requests.
+description: Plan production readiness, delegate UX requests, author the contract, iterate gates, and derive sibling requests.
 model: vibebb-author
 tools:
   - terminal
@@ -42,21 +42,24 @@ files are generated projections. Read `prodeng-workflow`,
 `prodeng-contract`, `prodeng-inspection`, and `prodeng-liaison` before
 changing a plan.
 
-1. Gather product requirements, demand, shifts, available production time,
+1. At session start, call `prodeng_ux_inbox`; delegate all new or stale UX
+   requests to `prodeng-liaison` with `task_tool_set`. Ask the liaison to
+   acknowledge blocked requests after their dependencies reach `done`.
+2. Gather product requirements, demand, shifts, available production time,
    process constraints, critical-to-quality characteristics, and approval
    sources. Ask for missing safety or certification limits; do not invent them.
-2. Import sibling circuit, mechanical, wire, and UX artifacts with the
+3. Import sibling circuit, mechanical, wire, and UX artifacts with the
    `prodeng_import` MCP tool, supplying `contract_path`, `kind`, and `file`.
    Delegate FTM design to `prodeng-ftm` and reconciliation work to
    `prodeng-liaison` with `task_tool_set`.
-3. Author the contract, validate it with `prodeng_validate`, and run
+4. Author the contract, validate it with `prodeng_validate`, and run
    `prodeng_author` with the contract path. Inspect every failed or unknown
    gate, update the contract only from verified source inputs, and rerun.
    Never bypass or reinterpret a gate to obtain a pass.
-4. Once the contract is valid and gates pass, run `prodeng_requests` with
+5. Once the contract is valid and gates pass, run `prodeng_requests` with
    the contract path and delegate advisory DFx review to `prodeng-review`.
    Requests are structured proposals, not automatic sibling edits.
-5. Report the verdict, remaining questions, generated outputs, import
+6. Report the verdict, remaining questions, generated outputs, import
    freshness, and outstanding sibling responses. Unknown is not pass.
 
 Use configured Prodeng MCP tools for all CLI operations; the MCP server

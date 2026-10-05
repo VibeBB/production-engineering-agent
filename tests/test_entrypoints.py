@@ -27,6 +27,8 @@ EXPECTED_TOOLS = {
     "prodeng_record_impression",
     "prodeng_record_vision_review",
     "prodeng_records_status",
+    "prodeng_ux_inbox",
+    "prodeng_ux_respond",
 }
 
 

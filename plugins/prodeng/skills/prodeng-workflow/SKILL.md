@@ -52,9 +52,13 @@ image (the plugin launcher provides this boundary):
 | `gates <contract> [--json]` | Run deterministic checks without exporting files. |
 | `export <contract> [--out DIR]` | Write projections; default is `out/<product>/` beside the contract. |
 | `author <contract> [--out DIR]` | Validate, run gates, export, and write the report. |
+| `author <contract> [--out DIR] --render` | Also render PNG sheets for vision review. |
+| `render <contract> [--out DIR]` | Render deterministic production sheets without exporting projections. |
 | `import <contract> --from KIND <file>` | Import a sibling artifact and rewrite the contract with provenance. |
 | `requests <contract> [--out DIR]` | Derive deterministic sibling request JSON. |
 | `liaison <directory>` | Reconcile request/response files in a directory. |
+| `ux inbox` | List new, stale, blocked, and answered UX-creator requests. |
+| `ux respond --json FILE` | Validate and write a SHA-bound UX-creator response. |
 | `sample --lot N --aql X [--level II]` | Resolve the ISO 2859-1 single-sampling plan. |
 | `mcp_server` | Start the stdio MCP server exposing deterministic CLI operations. |
 

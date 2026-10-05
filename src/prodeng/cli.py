@@ -20,6 +20,7 @@ from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
 from .sampling import LEVELS, sampling_plan
+from .ux_liaison import ux_inbox, ux_respond
 
 
 def _print(payload: object) -> None:
@@ -95,7 +96,7 @@ def _cmd_author(args: argparse.Namespace) -> int:
         report = run_gates(contract, contract_path.parent)
         out_dir = _out_dir(contract_path, args.out, contract)
         paths = write_projections(contract, contract_path.stem.removesuffix(".prodeng"), out_dir)
-        request_paths = write_requests(contract, report, contract_path.parent)
+        request_paths = write_requests(contract, report, contract_path.parent, contract_path)
         paths.update(write_report(contract, report, out_dir, contract_path.parent))
         render_paths = render_sheets(contract, out_dir) if args.render else {}
     except (OSError, ValueError) as exc:
@@ -172,7 +173,7 @@ def _cmd_requests(args: argparse.Namespace) -> int:
         contract_path, contract = _load(args)
         report = run_gates(contract, contract_path.parent)
         out_dir = Path(args.out) if args.out else contract_path.parent
-        paths = write_requests(contract, report, out_dir)
+        paths = write_requests(contract, report, out_dir, contract_path)
     except (OSError, ValueError) as exc:
         return _error("requests", exc)
     _print({"verdict": "pass", "stage": "requests", "written": [str(path) for path in paths]})
@@ -186,6 +187,27 @@ def _cmd_liaison(args: argparse.Namespace) -> int:
         return _error("liaison", exc)
     _print({"verdict": "pass", "stage": "liaison", **status.model_dump(mode="json")})
     return 0
+
+
+def _cmd_ux_inbox(_args: argparse.Namespace) -> int:
+    try:
+        result = ux_inbox()
+    except (OSError, ValueError) as exc:
+        return _error("ux inbox", exc)
+    _print(result)
+    return 0 if result["verdict"] == "pass" else 2
+
+
+def _cmd_ux_respond(args: argparse.Namespace) -> int:
+    try:
+        raw = json.loads(Path(args.json).read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("response JSON must be an object")
+        result = ux_respond(cast(dict[str, object], raw))
+    except (OSError, ValueError) as exc:
+        return _error("ux respond", exc)
+    _print(result)
+    return 0 if result["verdict"] == "pass" else 2
 
 
 def _cmd_sample(args: argparse.Namespace) -> int:
@@ -261,6 +283,14 @@ def parser() -> argparse.ArgumentParser:
     liaison = sub.add_parser("liaison")
     liaison.add_argument("directory")
     liaison.set_defaults(func=_cmd_liaison)
+
+    ux = sub.add_parser("ux")
+    ux_sub = ux.add_subparsers(dest="ux_command", required=True)
+    ux_inbox_parser = ux_sub.add_parser("inbox")
+    ux_inbox_parser.set_defaults(func=_cmd_ux_inbox)
+    ux_respond_parser = ux_sub.add_parser("respond")
+    ux_respond_parser.add_argument("--json", required=True)
+    ux_respond_parser.set_defaults(func=_cmd_ux_respond)
 
     sample = sub.add_parser("sample")
     sample.add_argument("--lot", required=True, type=int)

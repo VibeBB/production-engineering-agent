@@ -34,6 +34,7 @@ from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
 from .sampling import LEVELS, sampling_plan
+from .ux_liaison import UxRespondInput, ux_inbox, ux_respond
 from .workspace import workspace_path
 
 server = Server(f"prodeng-mcp/{__version__}")
@@ -47,6 +48,12 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
         "properties": {},
         "additionalProperties": False,
     },
+    "prodeng_ux_inbox": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "prodeng_ux_respond": UxRespondInput.model_json_schema(),
     "prodeng_doctor": {"type": "object", "properties": {}, "additionalProperties": False},
     "prodeng_validate": {
         "type": "object",
@@ -148,6 +155,13 @@ _TOOL_DESCRIPTIONS = {
     "prodeng_records_status": (
         "Count production-engineering records and report the last Stop-hook verdict."
     ),
+    "prodeng_ux_inbox": (
+        "List valid UX-creator requests for prodeng and report new, stale, blocked, "
+        "or answered state."
+    ),
+    "prodeng_ux_respond": (
+        "Validate and atomically write a SHA-bound SLP v2 response to a UX-creator request."
+    ),
     "prodeng_doctor": "Report package, Python, and locked tools-image diagnostics.",
     "prodeng_validate": "Validate a production-engineering contract and its cross-references.",
     "prodeng_gates": "Evaluate deterministic gates for a production-engineering contract.",
@@ -167,6 +181,7 @@ _WRITE_TOOLS = {
     "prodeng_record_decision",
     "prodeng_record_impression",
     "prodeng_record_vision_review",
+    "prodeng_ux_respond",
     "prodeng_export",
     "prodeng_author",
     "prodeng_render",
@@ -256,6 +271,10 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         return record_vision_review(arguments)
     if name == "prodeng_records_status":
         return records_summary()
+    if name == "prodeng_ux_inbox":
+        return ux_inbox()
+    if name == "prodeng_ux_respond":
+        return ux_respond(arguments)
     if name == "prodeng_liaison":
         status = liaison_status(Path(arguments["directory"]))
         return {"verdict": "pass", "stage": "liaison", **status.model_dump(mode="json")}
@@ -310,7 +329,7 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         }
         if name == "prodeng_author":
             gates = run_gates(contract, contract_path.parent)
-            request_paths = write_requests(contract, gates, contract_path.parent)
+            request_paths = write_requests(contract, gates, contract_path.parent, contract_path)
             paths.update(write_report(contract, gates, out_dir, contract_path.parent))
             render_paths = render_sheets(contract, out_dir) if render_enabled else {}
             payload = {
@@ -355,7 +374,9 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         return {
             "verdict": "pass",
             "stage": "requests",
-            "written": [str(path) for path in write_requests(contract, gates, out_dir)],
+            "written": [
+                str(path) for path in write_requests(contract, gates, out_dir, contract_path)
+            ],
         }
     return {"verdict": "fail", "detail": f"unknown tool {name}"}
 
