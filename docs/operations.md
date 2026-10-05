@@ -50,6 +50,22 @@ uv run python scripts/verify_docs.py
 uv run --group sdk-check python scripts/check_plugin_load.py
 ```
 
+`verify_all.py --list` dumps each stage's commands as JSON; `--group`
+(`lint`, `unit`, `docker`), `--match <substr>`, and `--shard K/N` select a
+subset of a stage for a faster local check — CI uses the same flags for its
+matrix legs, so a local partial run reproduces a failing check exactly. Run
+the full `fast` stage before submitting.
+
+Local `prodeng-tools` builds can reuse the CI-warmed registry buildcache; it
+is a public `buildcache` tag, so no GHCR login is needed:
+
+```bash
+docker buildx build --load \
+  -f docker/prodeng-tools.Dockerfile -t prodeng-tools:local \
+  --cache-from type=registry,ref=ghcr.io/vibebb/prodeng-tools:buildcache \
+  .
+```
+
 Workflow changes are checked by the repository's actionlint and zizmor
 workflow. The required image lock is validated before the locked smoke run;
 when an attestation URL is present, the check verifies it against the publish
