@@ -17,6 +17,11 @@
           "type": "command",
           "name": "ensure-llm-profiles",
           "command": "p=$(for c in \"${PRODENG_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/ensure_llm_profiles.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/ensure_llm_profiles.py\""
+        },
+        {
+          "type": "command",
+          "name": "require-records",
+          "command": "p=$(for c in \"${PRODENG_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" session-start"
         }
       ]
     }
@@ -61,6 +66,11 @@
       "hooks": [
         {
           "type": "command",
+          "name": "require-records",
+          "command": "p=$(for c in \"${PRODENG_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" stop"
+        },
+        {
+          "type": "command",
           "name": "report-prodeng-status",
           "command": "p=$(for c in \"${PRODENG_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/report_prodeng_status.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/report_prodeng_status.py\""
         },
@@ -84,7 +94,7 @@
       ]
     },
     {
-      "matcher": "file_editor|terminal",
+      "matcher": "file_editor|terminal|prodeng_render|prodeng_author",
       "hooks": [
         {
           "type": "command",

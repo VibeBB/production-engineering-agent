@@ -1,12 +1,16 @@
 # Architecture
 
+This document describes the implementation layers. See the
+[documentation index](README.md) for the workflow, interfaces, records, and
+operations guides.
+
 ## Three layers
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
 | L1 — Deterministic core | `src/prodeng/` | Contract parsing/validation, gates, sampling, imports, projections, requests/responses, reports, CLI, and MCP boundary. Sole pass/fail authority. |
 | L2 — OpenHands plugin | `plugins/prodeng/` | Skills, agent prompts, commands, hooks, and launcher steer workflows and invoke deterministic CLI operations. LLM judgment is advisory. |
-| L3 — Observation records | `plugins/prodeng/hooks/scripts/` and workspace `observations/prodeng/` | Record attachment/image/vision observations with provenance; records are not gate inputs. |
+| L3 — Observation records | `src/prodeng/records.py`, `plugins/prodeng/hooks/scripts/`, and workspace `observations/prodeng/` | Append decision, stage-impression, and vision-review records with provenance; records are not gate inputs. |
 
 The `*.prodeng.json` contract is truth. `out/<product>/` and
 `*.prodeng-request.json` are projections and are never hand-edited.
@@ -59,3 +63,17 @@ resolution. PFMEA RPN is informational and does not replace severity gates.
 Outputs use stable ordering, UTF-8, a final newline, and no generated
 timestamps. See [ADR-0001](adr/0001-deterministic-core-and-gates.md) and
 [ADR-0003](adr/0003-sibling-cooperation-via-contracts.md).
+
+## Render and liaison boundaries
+
+`src/prodeng/render.py` produces contract-derived PNG sheets and a
+`renders/index.json` containing image and source hashes. MCP render/author
+responses can carry PNG `ImageContent` blocks after the JSON text result.
+Rendered images and vision observations are advisory views, not gate inputs.
+
+Outbound prodeng requests and sibling responses use schema version 2 and
+input hashes. Inbound UX-creator requests and prodeng replies use the SLP v2
+schema under `liaison/`. Liaison state and record completeness are
+informational/enforcement workflows separate from the deterministic gate
+verdict. See [Contracts](contracts.md), [MCP](mcp.md), and
+[Records and vision](records-and-vision.md).

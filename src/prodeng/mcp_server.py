@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -14,20 +15,45 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
 from . import __version__
+from ._pillow import render_unavailable_reason
 from .contract import contract_json, load_contract
 from .doctor import run_doctor
 from .gates import run_gates
 from .imports import ImportKind, import_source
 from .projections import write_projections
+from .records import (
+    DecisionInput,
+    StageImpressionInput,
+    VisionReviewInput,
+    record_decision,
+    record_impression,
+    record_vision_review,
+    records_summary,
+)
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
 from .sampling import LEVELS, sampling_plan
+from .ux_liaison import UxRespondInput, ux_inbox, ux_respond
 from .workspace import workspace_path
 
 server = Server(f"prodeng-mcp/{__version__}")
 
 _SCHEMAS: dict[str, dict[str, Any]] = {
+    "prodeng_record_decision": DecisionInput.model_json_schema(),
+    "prodeng_record_impression": StageImpressionInput.model_json_schema(),
+    "prodeng_record_vision_review": VisionReviewInput.model_json_schema(),
+    "prodeng_records_status": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "prodeng_ux_inbox": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "prodeng_ux_respond": UxRespondInput.model_json_schema(),
     "prodeng_doctor": {"type": "object", "properties": {}, "additionalProperties": False},
     "prodeng_validate": {
         "type": "object",
@@ -51,6 +77,16 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
         "additionalProperties": False,
     },
     "prodeng_author": {
+        "type": "object",
+        "properties": {
+            "contract_path": {"type": "string"},
+            "out_dir": {"type": "string"},
+            "render": {"type": "boolean", "default": True},
+        },
+        "required": ["contract_path"],
+        "additionalProperties": False,
+    },
+    "prodeng_render": {
         "type": "object",
         "properties": {
             "contract_path": {"type": "string"},
@@ -105,19 +141,50 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
     },
 }
 _TOOL_DESCRIPTIONS = {
+    "prodeng_record_decision": (
+        "Record a production-engineering decision with principles, options, rationale, "
+        "evidence, assumptions, unknowns, risks, and a revisit trigger."
+    ),
+    "prodeng_record_impression": (
+        "Record a 400+ character, 3+ sentence impression of a completed production stage, "
+        "bound to its final artifacts."
+    ),
+    "prodeng_record_vision_review": (
+        "Record a 400+ character review of an image, bound to its path or vision-event ID."
+    ),
+    "prodeng_records_status": (
+        "Count production-engineering records and report the last Stop-hook verdict."
+    ),
+    "prodeng_ux_inbox": (
+        "List valid UX-creator requests for prodeng and report new, stale, blocked, "
+        "or answered state."
+    ),
+    "prodeng_ux_respond": (
+        "Validate and atomically write a SHA-bound SLP v2 response to a UX-creator request."
+    ),
     "prodeng_doctor": "Report package, Python, and locked tools-image diagnostics.",
     "prodeng_validate": "Validate a production-engineering contract and its cross-references.",
     "prodeng_gates": "Evaluate deterministic gates for a production-engineering contract.",
     "prodeng_export": "Write deterministic manufacturing-plan projections for a contract.",
-    "prodeng_author": "Validate, gate, project, report, and derive requests for a contract.",
+    "prodeng_author": (
+        "Validate, gate, project, report, and derive requests; render sheets by default."
+    ),
+    "prodeng_render": (
+        "Render deterministic production sheets as PNGs and return them inline for vision review."
+    ),
     "prodeng_import": "Import a supported sibling artifact and record its SHA-256 provenance.",
     "prodeng_requests": "Derive and write structured change requests to sibling agents.",
     "prodeng_liaison": "Reconcile production-engineering requests with sibling responses.",
     "prodeng_sample": "Select an attribute sampling plan for a lot, AQL, and inspection level.",
 }
 _WRITE_TOOLS = {
+    "prodeng_record_decision",
+    "prodeng_record_impression",
+    "prodeng_record_vision_review",
+    "prodeng_ux_respond",
     "prodeng_export",
     "prodeng_author",
+    "prodeng_render",
     "prodeng_import",
     "prodeng_requests",
 }
@@ -143,6 +210,16 @@ def tool_specs() -> list[types.Tool]:
 
 def _default_out(contract_path: Path, product_name: str) -> Path:
     return contract_path.parent / "out" / product_name
+
+
+def image_content(path: Path) -> types.ImageContent | None:
+    if path.suffix.lower() != ".png" or not path.is_file():
+        return None
+    return types.ImageContent(
+        type="image",
+        data=base64.b64encode(path.read_bytes()).decode("ascii"),
+        mimeType="image/png",
+    )
 
 
 def _workspace_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -186,6 +263,18 @@ def _workspace_path_argument(key: str, value: Any, required_paths: set[str]) -> 
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, object]:
     if name == "prodeng_doctor":
         return run_doctor()
+    if name == "prodeng_record_decision":
+        return record_decision(arguments)
+    if name == "prodeng_record_impression":
+        return record_impression(arguments)
+    if name == "prodeng_record_vision_review":
+        return record_vision_review(arguments)
+    if name == "prodeng_records_status":
+        return records_summary()
+    if name == "prodeng_ux_inbox":
+        return ux_inbox()
+    if name == "prodeng_ux_respond":
+        return ux_respond(arguments)
     if name == "prodeng_liaison":
         status = liaison_status(Path(arguments["directory"]))
         return {"verdict": "pass", "stage": "liaison", **status.model_dump(mode="json")}
@@ -224,6 +313,9 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
             "imports": [item.model_dump(mode="json") for item in updated.imports],
         }
     if name in ("prodeng_export", "prodeng_author"):
+        render_enabled = name == "prodeng_author" and arguments.get("render", True)
+        if not isinstance(render_enabled, bool):
+            raise ValueError("'render' must be a boolean")
         out_dir = (
             Path(arguments["out_dir"])
             if arguments.get("out_dir")
@@ -237,22 +329,69 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         }
         if name == "prodeng_author":
             gates = run_gates(contract, contract_path.parent)
-            request_paths = write_requests(contract, gates, contract_path.parent)
+            request_paths = write_requests(contract, gates, contract_path.parent, contract_path)
             paths.update(write_report(contract, gates, out_dir, contract_path.parent))
+            render_paths: dict[str, Path] = {}
+            render_skipped: str | None = None
+            if render_enabled:
+                render_skipped = render_unavailable_reason()
+                if render_skipped is None:
+                    from .render import render_sheets
+
+                    render_paths = render_sheets(contract, out_dir)
             payload = {
                 **gates.to_dict(contract),
                 "stage": "author",
                 "written": {key: str(path) for key, path in paths.items()},
                 "requests": [str(path) for path in request_paths],
             }
+            if render_enabled:
+                if render_skipped is not None:
+                    payload["render_skipped"] = render_skipped
+                else:
+                    payload.update(
+                        {
+                            "vision_review_required": [str(path) for path in render_paths.values()],
+                            "next_step": (
+                                "Look at every image and record prodeng_record_vision_review "
+                                "for each (400+ character impression judging accuracy, "
+                                "ambiguity, design intent and whether the shop floor could act "
+                                "on it)."
+                            ),
+                        }
+                    )
         return payload
+    if name == "prodeng_render":
+        render_unavailable = render_unavailable_reason()
+        if render_unavailable is not None:
+            raise ValueError(render_unavailable)
+        from .render import render_sheets
+
+        out_dir = (
+            Path(arguments["out_dir"])
+            if arguments.get("out_dir")
+            else _default_out(contract_path, contract.product.name)
+        )
+        paths = render_sheets(contract, out_dir)
+        return {
+            "verdict": "pass",
+            "stage": "render",
+            "vision_review_required": [str(path) for path in paths.values()],
+            "next_step": (
+                "Look at every image and record prodeng_record_vision_review for each "
+                "(400+ character impression judging accuracy, ambiguity, design intent "
+                "and whether the shop floor could act on it)."
+            ),
+        }
     if name == "prodeng_requests":
         gates = run_gates(contract, contract_path.parent)
         out_dir = Path(arguments["out_dir"]) if arguments.get("out_dir") else contract_path.parent
         return {
             "verdict": "pass",
             "stage": "requests",
-            "written": [str(path) for path in write_requests(contract, gates, out_dir)],
+            "written": [
+                str(path) for path in write_requests(contract, gates, out_dir, contract_path)
+            ],
         }
     return {"verdict": "fail", "detail": f"unknown tool {name}"}
 
@@ -273,10 +412,19 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
         except Exception as exc:
             payload = {"verdict": "fail", "detail": f"{name} error: {exc}"}
             is_error = True
+    content: list[types.ContentBlock] = [
+        types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))
+    ]
+    if not is_error:
+        image_paths = payload.get("vision_review_required")
+        if isinstance(image_paths, list):
+            for image_path in cast(list[object], image_paths):
+                if isinstance(image_path, str):
+                    image = image_content(Path(image_path))
+                    if image is not None:
+                        content.append(image)
     return types.CallToolResult(
-        content=[
-            types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))
-        ],
+        content=content,
         isError=is_error,
     )
 

@@ -5,11 +5,23 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from .contract import Inspection, Operation, ProdengContract
 from .sampling import sampling_plan
+
+
+@dataclass(frozen=True)
+class LineBalanceStation:
+    station: str
+    operation_ids: tuple[str, ...]
+    operation_names: tuple[str, ...]
+    cycle_time_s: float | None
+    takt_s: float
+    utilization: float | None
+    operators_by_operation: tuple[int, ...]
 
 
 def _json_write(path: Path, payload: object) -> None:
@@ -131,37 +143,44 @@ def _write_inspection_plan(contract: ProdengContract, out_dir: Path) -> None:
     )
 
 
-def _write_line_balance(contract: ProdengContract, path: Path) -> None:
+def line_balance_stations(contract: ProdengContract) -> list[LineBalanceStation]:
     stations: dict[str, list[Operation]] = {}
     for operation in contract.operations:
         stations.setdefault(operation.station, []).append(operation)
-    rows: list[list[str]] = []
+    rows: list[LineBalanceStation] = []
     for station, operations in sorted(
         stations.items(),
         key=lambda item: min(operation.id for operation in item[1]),
     ):
-        cycle_times = [operation.cycle_time_s for operation in operations]
+        ordered = sorted(operations, key=lambda item: item.id)
+        cycle_times = [operation.cycle_time_s for operation in ordered]
         total = (
             sum(value for value in cycle_times if value is not None)
             if all(value is not None for value in cycle_times)
             else None
         )
         rows.append(
-            [
-                station,
-                "; ".join(
-                    operation.id for operation in sorted(operations, key=lambda item: item.id)
-                ),
-                "; ".join(sorted({operation.name for operation in operations})),
-                "" if total is None else f"{total:g}",
-                f"{contract.volume.takt_s:g}",
-                "" if total is None else f"{total / contract.volume.takt_s:.6f}",
-                "; ".join(
-                    str(operation.operators)
-                    for operation in sorted(operations, key=lambda item: item.id)
-                ),
-            ]
+            LineBalanceStation(
+                station=station,
+                operation_ids=tuple(operation.id for operation in ordered),
+                operation_names=tuple(sorted({operation.name for operation in operations})),
+                cycle_time_s=total,
+                takt_s=contract.volume.takt_s,
+                utilization=None if total is None else total / contract.volume.takt_s,
+                operators_by_operation=tuple(operation.operators for operation in ordered),
+            )
         )
+    return rows
+
+
+def line_balance_efficiency(contract: ProdengContract) -> float | None:
+    stations = line_balance_stations(contract)
+    if not stations or any(station.utilization is None for station in stations):
+        return None
+    return sum(station.utilization or 0 for station in stations) / len(stations)
+
+
+def _write_line_balance(contract: ProdengContract, path: Path) -> None:
     _csv_write(
         path,
         [
@@ -173,7 +192,18 @@ def _write_line_balance(contract: ProdengContract, path: Path) -> None:
             "utilization",
             "operators_by_operation",
         ],
-        rows,
+        [
+            [
+                station.station,
+                "; ".join(station.operation_ids),
+                "; ".join(station.operation_names),
+                "" if station.cycle_time_s is None else f"{station.cycle_time_s:g}",
+                f"{station.takt_s:g}",
+                "" if station.utilization is None else f"{station.utilization:.6f}",
+                "; ".join(str(value) for value in station.operators_by_operation),
+            ]
+            for station in line_balance_stations(contract)
+        ],
     )
 
 

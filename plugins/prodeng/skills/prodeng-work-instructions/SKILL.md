@@ -50,3 +50,16 @@ released work-instruction numbering, translation, and document release.
 Production engineering supplies the structured steps, key points, reasons,
 operation/inspection links, and safety content as a document-sibling
 request; it does not release a controlled document itself.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect each
+returned PNG (inline, with `file_editor view`, or with
+`inspect_image_with_vision` using the `vibebb-review` profile). Record one
+`prodeng_record_vision_review` per image; use `work-instruction` for TWI
+sheets and the matching `control-plan`, `pfmea`, `line-balance`, or
+`factory-test-spec` checklist for other production sheets. Judge contract
+accuracy, ambiguity, design intent, and whether an operator or inspector can
+act on the content. Review intake photos in `intake/attachments/` with
+`intake-photo` and sibling circuit/PCB/schematic or mechanical drawings with
+`sister-render`.

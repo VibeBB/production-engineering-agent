@@ -3,6 +3,16 @@
     "CH-03",
     "IN-02"
   ],
+  "inputs": [
+    {
+      "path": "smart-kettle.prodeng.json",
+      "sha256": "e1a1f421c93fe21e81b9a1e98a892982e3df1a51da7ad11668b8abd3f11cfcec"
+    },
+    {
+      "path": "upstream/smart-kettle.circuit-brief.json",
+      "sha256": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed"
+    }
+  ],
   "rationale": "Implement the guarded factory test mode, field lockout, and bounded command protocol.",
   "requested_changes": [
     "Entry: gpio_strap; A fixture-held strap on FTM_STRAP is sampled only during reset; conditions: FTM_STRAP asserted by the keyed fixture before reset; UART magic token PRODENG-FTM-v1 received before the 2-second boot timeout.",
@@ -16,7 +26,7 @@
     "Total command timeout budget: 3.5 s; maximum: 6 s."
   ],
   "risk": "high",
-  "schema_version": 1,
+  "schema_version": 2,
   "system": "prodeng",
   "target_agent": "firmware",
   "topic": "factory-test-mode"

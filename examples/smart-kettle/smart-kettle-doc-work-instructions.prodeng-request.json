@@ -1,13 +1,23 @@
 {
   "cites": [],
+  "inputs": [
+    {
+      "path": "smart-kettle.prodeng.json",
+      "sha256": "e1a1f421c93fe21e81b9a1e98a892982e3df1a51da7ad11668b8abd3f11cfcec"
+    },
+    {
+      "path": "upstream/smart-kettle.circuit-brief.json",
+      "sha256": "3e7d5d37099c58dc67ddc5c72896d3faea546e09bcbb70054e6b197d37caa8ed"
+    }
+  ],
   "rationale": "Typeset and control the manufacturing work instructions and QC control plan.",
   "requested_changes": [
     "Create controlled work instructions from the operation TWI major-step, key-point, and reason tables.",
     "Typeset the inspection/control plan with reaction plans and sampling criteria."
   ],
   "risk": "low",
-  "schema_version": 1,
+  "schema_version": 2,
   "system": "prodeng",
-  "target_agent": "document",
+  "target_agent": "doc",
   "topic": "work-instructions"
 }

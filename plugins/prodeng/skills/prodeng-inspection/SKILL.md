@@ -67,3 +67,13 @@ which standard applies depends on the product. **Exact test voltages,
 durations, leakage limits, and bond limits must come from the applicable
 standard and the product's certification procedure, not from the agent.**
 Capture the approved source and its revision in a requirement/criterion.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect every
+returned PNG and record one `prodeng_record_vision_review` per image. Use
+`control-plan`, `pfmea`, `line-balance`, `work-instruction`, or
+`factory-test-spec` to match the sheet. Judge accuracy against the contract,
+ambiguity, design intent, and whether an operator or inspector can act on it.
+Review intake photos in `intake/attachments/` with `intake-photo` and sibling
+circuit/PCB/schematic or mechanical drawings with `sister-render`.

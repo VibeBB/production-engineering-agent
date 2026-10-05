@@ -7,6 +7,7 @@ import platform
 from importlib.metadata import PackageNotFoundError, version
 
 from . import __version__
+from ._pillow import render_unavailable_reason
 
 
 def _package_version(name: str) -> str:
@@ -17,10 +18,12 @@ def _package_version(name: str) -> str:
 
 
 def run_doctor() -> dict[str, object]:
+    pillow_reason = render_unavailable_reason()
     return {
         "verdict": "pass",
         "python": platform.python_version(),
         "pydantic": _package_version("pydantic"),
+        "pillow": f"missing: {pillow_reason}" if pillow_reason else _package_version("pillow"),
         "production-engineering-agent": __version__,
     }
 

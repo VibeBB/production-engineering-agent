@@ -4,25 +4,35 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .requests import TARGET_AGENTS, ProdengRequest
+from .requests import TARGET_AGENTS, ProdengRequest, TargetAgent
 
 ResponseStatus = Literal["accepted", "rejected", "deferred", "needs_info"]
+type Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+
+
+class ResponseArtifact(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    path: str = Field(min_length=1)
+    sha256: Sha256
 
 
 class ProdengResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     system: Literal["prodeng"] = "prodeng"
     request: str = Field(min_length=1)
-    responder: str = Field(min_length=1)
+    responder: TargetAgent
     status: ResponseStatus
     reason: str = ""
-    artifacts: list[str] = Field(default_factory=list)
+    artifacts: list[ResponseArtifact] = Field(default_factory=list[ResponseArtifact])
+    input_hashes: dict[str, Sha256]
+    decision_refs: list[Sha256] = Field(default_factory=list)
 
 
 class LiaisonEntry(BaseModel):
@@ -31,7 +41,7 @@ class LiaisonEntry(BaseModel):
     request: str
     target_agent: str
     risk: Literal["low", "high"]
-    state: Literal["open", "answered", "mismatched"]
+    state: Literal["open", "answered", "mismatched", "stale"]
     response_status: ResponseStatus | None = None
     reason: str = ""
     response_path: str = ""
@@ -104,9 +114,11 @@ def liaison_status(requests_dir: Path, responses_dir: Path | None = None) -> Lia
             )
             continue
         response_path, response = response_entry
-        state: Literal["answered", "mismatched"] = (
-            "answered" if response.responder == request.target_agent else "mismatched"
-        )
+        request_hashes = {item.path: item.sha256 for item in request.inputs}
+        if response.input_hashes != request_hashes:
+            state = "stale"
+        else:
+            state = "answered" if response.responder == request.target_agent else "mismatched"
         entries.append(
             LiaisonEntry(
                 request=stem,

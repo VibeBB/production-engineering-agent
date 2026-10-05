@@ -22,6 +22,13 @@ def _load_launcher() -> ModuleType:
     return module
 
 
+def test_launcher_source_resolution_docs_do_not_name_a_nonexistent_image() -> None:
+    source = LAUNCHER_PATH.read_text(encoding="utf-8")
+
+    assert "/opt/prodeng/src (when mounted in the runtime environment)" in source
+    assert "prodeng-server image" not in source
+
+
 class _ImagePin(TypedDict):
     ref: str
     image: str | None

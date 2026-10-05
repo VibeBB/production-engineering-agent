@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import json
 from pathlib import Path
 
 from prodeng.contract import load_contract
@@ -16,7 +18,24 @@ def test_projections_are_byte_stable_against_committed_golden(tmp_path: Path) ->
     contract = load_contract(EXAMPLE_DIR / "smart-kettle.prodeng.json")
     paths = write_projections(contract, "smart-kettle", tmp_path)
     gates = run_gates(contract, EXAMPLE_DIR)
-    request_paths = write_requests(contract, gates, tmp_path)
+    stale = tmp_path / "smart-kettle-document-work-instructions.prodeng-request.json"
+    stale.write_text("stale generated request\n", encoding="utf-8")
+    request_paths = write_requests(
+        contract,
+        gates,
+        tmp_path,
+        EXAMPLE_DIR / "smart-kettle.prodeng.json",
+    )
+    assert not stale.exists()
+    for path in request_paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["schema_version"] == 2
+        hashes = {item["path"]: item["sha256"] for item in payload["inputs"]}
+        assert (
+            hashes["smart-kettle.prodeng.json"]
+            == hashlib.sha256((EXAMPLE_DIR / "smart-kettle.prodeng.json").read_bytes()).hexdigest()
+        )
+        assert all(hashes[item.path] == item.sha256 for item in contract.imports)
     paths.update(write_report(contract, gates, tmp_path, tmp_path))
     golden = EXAMPLE_DIR / "out" / "smart-kettle"
     for path in paths.values():

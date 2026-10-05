@@ -18,10 +18,17 @@ EXPECTED_TOOLS = {
     "prodeng_gates",
     "prodeng_export",
     "prodeng_author",
+    "prodeng_render",
     "prodeng_import",
     "prodeng_requests",
     "prodeng_liaison",
     "prodeng_sample",
+    "prodeng_record_decision",
+    "prodeng_record_impression",
+    "prodeng_record_vision_review",
+    "prodeng_records_status",
+    "prodeng_ux_inbox",
+    "prodeng_ux_respond",
 }
 
 

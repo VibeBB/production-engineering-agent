@@ -52,9 +52,13 @@ image (the plugin launcher provides this boundary):
 | `gates <contract> [--json]` | Run deterministic checks without exporting files. |
 | `export <contract> [--out DIR]` | Write projections; default is `out/<product>/` beside the contract. |
 | `author <contract> [--out DIR]` | Validate, run gates, export, and write the report. |
+| `author <contract> [--out DIR] --render` | Also render PNG sheets for vision review. |
+| `render <contract> [--out DIR]` | Render deterministic production sheets without exporting projections. |
 | `import <contract> --from KIND <file>` | Import a sibling artifact and rewrite the contract with provenance. |
 | `requests <contract> [--out DIR]` | Derive deterministic sibling request JSON. |
 | `liaison <directory>` | Reconcile request/response files in a directory. |
+| `ux inbox` | List new, stale, blocked, and answered UX-creator requests. |
+| `ux respond --json FILE` | Validate and write a SHA-bound UX-creator response. |
 | `sample --lot N --aql X [--level II]` | Resolve the ISO 2859-1 single-sampling plan. |
 | `mcp_server` | Start the stdio MCP server exposing deterministic CLI operations. |
 
@@ -62,3 +66,40 @@ Exit codes: `0` means command success (and a passing author verdict),
 `1` means a gate verdict is fail/unknown or a runtime check failed, and `2`
 means invalid input or usage. A valid contract can still receive an unknown
 gate verdict; report it as blocked.
+
+## Records you must leave
+
+Use `prodeng_record_decision`, `prodeng_record_impression`, and
+`prodeng_record_vision_review` throughout each workflow. Record every
+non-trivial choice, including takt or shift assumptions, operation split and
+line balance, inspection method and sampling level/AQL, PFMEA
+severity/occurrence/detection ratings and action priority, poka-yoke versus
+inspection, fixture/test-access strategy, FTM entry/lockout design, and
+request risk level.
+
+Leave an impression at the end of each stage, after final regeneration:
+`intake`, `contract`, `gates`, `projections` (control plan,
+inspection/sampling, line balance, PFMEA, TWI, and FTM), `vision-review`,
+`liaison`, and `handoff`. Bind it to the final artifact paths. Each
+impression must be at least 400 characters and 3 distinct sentences about
+what you noticed, what works, what worries you, how a maker or user would
+read the result, and what to do next.
+
+Whenever an image is viewed, record a `vision_review` bound to its path or
+vision-event ID. Judge accuracy, ambiguity, design intent, and whether the
+shop floor can act on it. The CLI equivalents are
+`python -m prodeng record decision|impression|vision-review --json <file>`
+and `python -m prodeng record status`.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect every
+returned PNG (inline, with `file_editor view`, or with
+`inspect_image_with_vision` using the `vibebb-review` profile). Record one
+`prodeng_record_vision_review` per image using `control-plan`, `pfmea`,
+`line-balance`, `work-instruction`, or `factory-test-spec` as appropriate.
+Judge accuracy against the contract, ambiguity, design intent, and whether an
+operator or inspector can act on the sheet. Review every intake photo in
+`intake/attachments/` with `intake-photo` and each sibling circuit/PCB/schematic
+or mechanical drawing with `sister-render`; do not treat the generated file
+or its JSON index as a substitute for visual inspection.

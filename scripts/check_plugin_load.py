@@ -29,10 +29,34 @@ EXPECTED_AGENT_MODELS = {
     "prodeng-review": "vibebb-review",
 }
 EXPECTED_AGENT_TOOLS = {
-    "prodeng-ftm": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
-    "prodeng-liaison": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
-    "prodeng-planner": {"terminal", "file_editor", "grep", "glob", "task_tracker", "task_tool_set"},
-    "prodeng-review": {"file_editor", "grep", "glob"},
+    "prodeng-ftm": {
+        "terminal",
+        "file_editor",
+        "grep",
+        "glob",
+        "task_tracker",
+        "task_tool_set",
+        "VisionInspectTool",
+    },
+    "prodeng-liaison": {
+        "terminal",
+        "file_editor",
+        "grep",
+        "glob",
+        "task_tracker",
+        "task_tool_set",
+        "VisionInspectTool",
+    },
+    "prodeng-planner": {
+        "terminal",
+        "file_editor",
+        "grep",
+        "glob",
+        "task_tracker",
+        "task_tool_set",
+        "VisionInspectTool",
+    },
+    "prodeng-review": {"file_editor", "grep", "glob", "VisionInspectTool", "ThinkTool"},
 }
 EXPECTED_AGENT_LIMITS = {
     "prodeng-ftm": (30, 3.0),
@@ -51,10 +75,15 @@ EXPECTED_SKILLS = {
     "prodeng-workflow",
 }
 EXPECTED_COMMANDS = {"doctor", "export", "ftm", "gates", "liaison", "plan"}
-EXPECTED_SESSION_START_HOOKS = {"prodeng-doctor", "intake-attachments", "ensure-llm-profiles"}
+EXPECTED_SESSION_START_HOOKS = {
+    "prodeng-doctor",
+    "intake-attachments",
+    "ensure-llm-profiles",
+    "require-records",
+}
 EXPECTED_USER_PROMPT_SUBMIT_HOOKS = {"intake-attachments"}
 EXPECTED_PRE_TOOL_USE_HOOKS = {"protect-generated", "safety-rail"}
-EXPECTED_STOP_HOOKS = {"report-prodeng-status", "intake-attachments"}
+EXPECTED_STOP_HOOKS = {"report-prodeng-status", "intake-attachments", "require-records"}
 EXPECTED_POST_TOOL_USE_HOOKS = {"record-image-observation", "record-vision-tool-event"}
 
 
@@ -191,10 +220,7 @@ def check_plugin(plugin_dir: Path) -> list[str]:
         reasons.append("plugin hooks are missing")
 
     for agent in plugin.agents:
-        if agent.name == "prodeng-review":
-            if agent.mcp_config:
-                reasons.append("prodeng-review must not have MCP configuration")
-        elif not agent.mcp_config:
+        if not agent.mcp_config:
             reasons.append(f"agent {agent.name!r} is missing MCP configuration")
 
     registered = _registered_tools()
