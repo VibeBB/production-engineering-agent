@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 from pathlib import Path
 from typing import Any, cast
@@ -28,6 +29,7 @@ from .records import (
     record_vision_review,
     records_summary,
 )
+from .render import render_sheets
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -68,6 +70,16 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
         "additionalProperties": False,
     },
     "prodeng_author": {
+        "type": "object",
+        "properties": {
+            "contract_path": {"type": "string"},
+            "out_dir": {"type": "string"},
+            "render": {"type": "boolean", "default": True},
+        },
+        "required": ["contract_path"],
+        "additionalProperties": False,
+    },
+    "prodeng_render": {
         "type": "object",
         "properties": {
             "contract_path": {"type": "string"},
@@ -140,7 +152,12 @@ _TOOL_DESCRIPTIONS = {
     "prodeng_validate": "Validate a production-engineering contract and its cross-references.",
     "prodeng_gates": "Evaluate deterministic gates for a production-engineering contract.",
     "prodeng_export": "Write deterministic manufacturing-plan projections for a contract.",
-    "prodeng_author": "Validate, gate, project, report, and derive requests for a contract.",
+    "prodeng_author": (
+        "Validate, gate, project, report, and derive requests; render sheets by default."
+    ),
+    "prodeng_render": (
+        "Render deterministic production sheets as PNGs and return them inline for vision review."
+    ),
     "prodeng_import": "Import a supported sibling artifact and record its SHA-256 provenance.",
     "prodeng_requests": "Derive and write structured change requests to sibling agents.",
     "prodeng_liaison": "Reconcile production-engineering requests with sibling responses.",
@@ -152,6 +169,7 @@ _WRITE_TOOLS = {
     "prodeng_record_vision_review",
     "prodeng_export",
     "prodeng_author",
+    "prodeng_render",
     "prodeng_import",
     "prodeng_requests",
 }
@@ -177,6 +195,16 @@ def tool_specs() -> list[types.Tool]:
 
 def _default_out(contract_path: Path, product_name: str) -> Path:
     return contract_path.parent / "out" / product_name
+
+
+def image_content(path: Path) -> types.ImageContent | None:
+    if path.suffix.lower() != ".png" or not path.is_file():
+        return None
+    return types.ImageContent(
+        type="image",
+        data=base64.b64encode(path.read_bytes()).decode("ascii"),
+        mimeType="image/png",
+    )
 
 
 def _workspace_arguments(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -266,6 +294,9 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
             "imports": [item.model_dump(mode="json") for item in updated.imports],
         }
     if name in ("prodeng_export", "prodeng_author"):
+        render_enabled = name == "prodeng_author" and arguments.get("render", True)
+        if not isinstance(render_enabled, bool):
+            raise ValueError("'render' must be a boolean")
         out_dir = (
             Path(arguments["out_dir"])
             if arguments.get("out_dir")
@@ -281,13 +312,43 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
             gates = run_gates(contract, contract_path.parent)
             request_paths = write_requests(contract, gates, contract_path.parent)
             paths.update(write_report(contract, gates, out_dir, contract_path.parent))
+            render_paths = render_sheets(contract, out_dir) if render_enabled else {}
             payload = {
                 **gates.to_dict(contract),
                 "stage": "author",
                 "written": {key: str(path) for key, path in paths.items()},
                 "requests": [str(path) for path in request_paths],
+                **(
+                    {
+                        "vision_review_required": [str(path) for path in render_paths.values()],
+                        "next_step": (
+                            "Look at every image and record prodeng_record_vision_review for each "
+                            "(400+ character impression judging accuracy, ambiguity, design intent "
+                            "and whether the shop floor could act on it)."
+                        ),
+                    }
+                    if render_enabled
+                    else {}
+                ),
             }
         return payload
+    if name == "prodeng_render":
+        out_dir = (
+            Path(arguments["out_dir"])
+            if arguments.get("out_dir")
+            else _default_out(contract_path, contract.product.name)
+        )
+        paths = render_sheets(contract, out_dir)
+        return {
+            "verdict": "pass",
+            "stage": "render",
+            "vision_review_required": [str(path) for path in paths.values()],
+            "next_step": (
+                "Look at every image and record prodeng_record_vision_review for each "
+                "(400+ character impression judging accuracy, ambiguity, design intent "
+                "and whether the shop floor could act on it)."
+            ),
+        }
     if name == "prodeng_requests":
         gates = run_gates(contract, contract_path.parent)
         out_dir = Path(arguments["out_dir"]) if arguments.get("out_dir") else contract_path.parent
@@ -315,10 +376,19 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
         except Exception as exc:
             payload = {"verdict": "fail", "detail": f"{name} error: {exc}"}
             is_error = True
+    content: list[types.ContentBlock] = [
+        types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))
+    ]
+    if not is_error:
+        image_paths = payload.get("vision_review_required")
+        if isinstance(image_paths, list):
+            for image_path in cast(list[object], image_paths):
+                if isinstance(image_path, str):
+                    image = image_content(Path(image_path))
+                    if image is not None:
+                        content.append(image)
     return types.CallToolResult(
-        content=[
-            types.TextContent(type="text", text=json.dumps(payload, indent=2, sort_keys=True))
-        ],
+        content=content,
         isError=is_error,
     )
 

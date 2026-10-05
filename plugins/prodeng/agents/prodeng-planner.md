@@ -87,3 +87,16 @@ ambiguity, design intent, and whether the shop floor can act on it. The CLI
 equivalent is `python -m prodeng record decision|impression|vision-review
 --json <file>`; `python -m prodeng record status` reports outstanding
 records.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect every
+returned PNG (inline, with `file_editor view`, or with
+`inspect_image_with_vision` using the `vibebb-review` profile). Record one
+`prodeng_record_vision_review` per image using `control-plan`, `pfmea`,
+`line-balance`, `work-instruction`, or `factory-test-spec` as appropriate.
+Judge accuracy against the contract, ambiguity, design intent, and whether an
+operator or inspector can act on the sheet. Review every intake photo in
+`intake/attachments/` with `intake-photo` and each sibling circuit/PCB/schematic
+or mechanical drawing with `sister-render`; do not treat the generated file
+or its JSON index as a substitute for visual inspection.

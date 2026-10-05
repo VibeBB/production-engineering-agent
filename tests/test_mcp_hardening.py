@@ -61,6 +61,15 @@ def test_records_mcp_tools_have_expected_read_write_hints() -> None:
     )
 
 
+def test_render_mcp_tools_are_writable_and_author_renders_by_default() -> None:
+    tools = {tool.name: tool for tool in mcp_server.tool_specs()}
+    assert tools["prodeng_render"].annotations is not None
+    assert tools["prodeng_render"].annotations.readOnlyHint is False
+    assert tools["prodeng_author"].annotations is not None
+    assert tools["prodeng_author"].annotations.readOnlyHint is False
+    assert tools["prodeng_author"].inputSchema["properties"]["render"]["default"] is True
+
+
 def test_raised_mcp_handler_returns_error_result(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fail(_name: str, _arguments: dict[str, Any]) -> dict[str, object]:
         raise RuntimeError("handler exploded")

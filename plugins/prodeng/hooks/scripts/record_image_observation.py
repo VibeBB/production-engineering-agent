@@ -25,7 +25,12 @@ from typing import Any, cast
 
 EVENTS_ENV = "PRODENG_IMAGE_OBSERVATIONS"
 EVENTS_RELATIVE_PATH = Path("observations/prodeng/image-observations.jsonl")
-OBSERVED_TOOLS = {"file_editor", "terminal"}
+OBSERVED_TOOLS = {
+    "file_editor",
+    "terminal",
+    "prodeng_render",
+    "prodeng_author",
+}
 # Payload keys that identify which agent/tool call produced the event;
 # different SDK versions expose different ones.
 _ACTOR_KEYS = {

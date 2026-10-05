@@ -94,7 +94,7 @@
       ]
     },
     {
-      "matcher": "file_editor|terminal",
+      "matcher": "file_editor|terminal|prodeng_render|prodeng_author",
       "hooks": [
         {
           "type": "command",

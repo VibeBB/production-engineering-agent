@@ -27,7 +27,7 @@ hooks:
         - type: command
           name: record-vision-tool-event
           command: 'p=$(for c in "${PRODENG_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/hooks/scripts/record_vision_tool_event.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_vision_tool_event.py"'
-    - matcher: file_editor
+    - matcher: file_editor|terminal|prodeng_render|prodeng_author
       hooks:
         - type: command
           name: record-image-observation
@@ -86,3 +86,16 @@ vision-event ID. Use the matching image checklist and judge accuracy,
 ambiguity, design intent, and whether the shop floor can act on it. The only
 writes you may make are VRP records through the record tools; never edit
 workspace files or issue a verdict.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect every
+returned PNG (inline, with `file_editor view`, or with
+`inspect_image_with_vision` using the `vibebb-review` profile). Record one
+`prodeng_record_vision_review` per image using `control-plan`, `pfmea`,
+`line-balance`, `work-instruction`, or `factory-test-spec` as appropriate.
+Judge accuracy against the contract, ambiguity, design intent, and whether an
+operator or inspector can act on the sheet. Review every intake photo in
+`intake/attachments/` with `intake-photo` and each sibling circuit/PCB/schematic
+or mechanical drawing with `sister-render`; do not treat the generated file
+or its JSON index as a substitute for visual inspection.

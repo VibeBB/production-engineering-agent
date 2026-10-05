@@ -15,6 +15,7 @@ from .gates import run_gates
 from .imports import IMPORT_SYSTEMS, import_source
 from .projections import write_projections
 from .records import RECORDERS, records_summary
+from .render import render_sheets
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -96,17 +97,51 @@ def _cmd_author(args: argparse.Namespace) -> int:
         paths = write_projections(contract, contract_path.stem.removesuffix(".prodeng"), out_dir)
         request_paths = write_requests(contract, report, contract_path.parent)
         paths.update(write_report(contract, report, out_dir, contract_path.parent))
+        render_paths = render_sheets(contract, out_dir) if args.render else {}
     except (OSError, ValueError) as exc:
         return _error("author", exc)
+    payload: dict[str, object] = {
+        **report.to_dict(contract),
+        "stage": "author",
+        "written": {key: str(value) for key, value in paths.items()},
+        "requests": [str(path) for path in request_paths],
+    }
+    if args.render:
+        payload.update(
+            {
+                "vision_review_required": [str(path) for path in render_paths.values()],
+                "next_step": (
+                    "Look at every image and record prodeng_record_vision_review for each "
+                    "(400+ character impression judging accuracy, ambiguity, design intent "
+                    "and whether the shop floor could act on it)."
+                ),
+            }
+        )
+    _print(payload)
+    return 0 if report.verdict == "pass" else 1
+
+
+def _cmd_render(args: argparse.Namespace) -> int:
+    try:
+        contract_path, contract = _load(args)
+        out_dir = _out_dir(contract_path, args.out, contract)
+        paths = render_sheets(contract, out_dir)
+    except (OSError, ValueError) as exc:
+        return _error("render", exc)
     _print(
         {
-            **report.to_dict(contract),
-            "stage": "author",
-            "written": {key: str(value) for key, value in paths.items()},
-            "requests": [str(path) for path in request_paths],
+            "verdict": "pass",
+            "stage": "render",
+            "rendered": {key: str(value) for key, value in paths.items()},
+            "vision_review_required": [str(path) for path in paths.values()],
+            "next_step": (
+                "Look at every image and record prodeng_record_vision_review for each "
+                "(400+ character impression judging accuracy, ambiguity, design intent "
+                "and whether the shop floor could act on it)."
+            ),
         }
     )
-    return 0 if report.verdict == "pass" else 1
+    return 0
 
 
 def _cmd_import(args: argparse.Namespace) -> int:
@@ -204,7 +239,13 @@ def parser() -> argparse.ArgumentParser:
     author = sub.add_parser("author")
     author.add_argument("contract")
     author.add_argument("--out")
+    author.add_argument("--render", action="store_true")
     author.set_defaults(func=_cmd_author)
+
+    render = sub.add_parser("render")
+    render.add_argument("contract")
+    render.add_argument("--out")
+    render.set_defaults(func=_cmd_render)
 
     import_parser = sub.add_parser("import")
     import_parser.add_argument("contract")

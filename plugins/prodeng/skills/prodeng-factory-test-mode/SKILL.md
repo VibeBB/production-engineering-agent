@@ -70,3 +70,13 @@ Keep the `TC-##` command definitions linked to inspected characteristics
 and FTM inspection operations. Every command needs covered characteristics
 and an inspection use; missing test access is a gate failure or unknown,
 not an advisory pass.
+
+## Vision review points
+
+After every `prodeng_author` that renders or `prodeng_render`, inspect every
+returned PNG and record one `prodeng_record_vision_review` per image. Use
+`factory-test-spec` for the FTM sheet and the matching checklist for each
+other sheet. Judge accuracy against the contract, ambiguity, design intent,
+and whether an operator or inspector can act on the content. Review intake
+photos in `intake/attachments/` with `intake-photo` and sibling
+circuit/PCB/schematic or mechanical drawings with `sister-render`.

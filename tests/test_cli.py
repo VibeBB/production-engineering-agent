@@ -44,6 +44,7 @@ def test_cli_success_and_exit_codes(tmp_path: Path) -> None:
     assert main(["gates", str(contract), "--json"]) == 0
     assert main(["export", str(contract), "--out", str(tmp_path / "export")]) == 0
     assert main(["author", str(contract), "--out", str(tmp_path / "author")]) == 0
+    assert not (tmp_path / "author" / "renders").exists()
     assert main(["requests", str(contract), "--out", str(tmp_path / "requests")]) == 0
     assert main(["liaison", str(tmp_path / "requests")]) == 0
     assert main(["sample", "--lot", "1000", "--aql", "1.0", "--level", "II"]) == 0
@@ -58,6 +59,25 @@ def test_cli_invalid_input_and_gate_failure_exit_codes(tmp_path: Path) -> None:
     failing = _copy_example(tmp_path / "failing", fail_gates=True)
     assert main(["author", str(failing)]) == 1
     assert main(["sample", "--lot", "1", "--aql", "1.0"]) == 2
+
+
+def test_cli_render_and_author_render_opt_in(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    contract = _copy_example(tmp_path)
+    render_dir = tmp_path / "render-only"
+    assert main(["render", str(contract), "--out", str(render_dir)]) == 0
+    render_payload = json.loads(capsys.readouterr().out)
+    assert render_payload["stage"] == "render"
+    assert render_payload["vision_review_required"]
+    assert (render_dir / "renders" / "index.json").is_file()
+    assert not (render_dir / "control-plan.csv").exists()
+
+    author_dir = tmp_path / "author-render"
+    assert main(["author", str(contract), "--out", str(author_dir), "--render"]) == 0
+    author_payload = json.loads(capsys.readouterr().out)
+    assert author_payload["vision_review_required"]
+    assert (author_dir / "renders" / "index.json").is_file()
 
 
 def test_cli_record_impression_status_and_validation(

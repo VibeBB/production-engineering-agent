@@ -18,6 +18,7 @@ EXPECTED_TOOLS = {
     "prodeng_gates",
     "prodeng_export",
     "prodeng_author",
+    "prodeng_render",
     "prodeng_import",
     "prodeng_requests",
     "prodeng_liaison",

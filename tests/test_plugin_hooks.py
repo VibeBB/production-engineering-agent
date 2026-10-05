@@ -58,7 +58,7 @@ def test_review_agent_has_view_only_visual_hooks() -> None:
     assert "name: protect-generated" in frontmatter
     assert "matcher: inspect_image_with_vision" in frontmatter
     assert "name: record-vision-tool-event" in frontmatter
-    assert "matcher: file_editor" in frontmatter
+    assert "matcher: file_editor|terminal|prodeng_render|prodeng_author" in frontmatter
     assert "name: record-image-observation" in frontmatter
     assert "`file_editor view`" in source
     assert "use `view` only" in source
