@@ -63,7 +63,7 @@ family; change all 9 copies together and update EXPECTED. `intake_attachments.py
 repo-specific.
 
 All source, docs, issue/PR text, and commit messages are English, except
-`README.ja.md` and Japanese examples in agent/skill frontmatter. Follow the
+the `## 日本語` section of `README.md` and Japanese examples in agent/skill frontmatter. Follow the
 repository's pinned Ruff/Pyright configuration and Pydantic v2 conventions.
 
 ## Git safety
