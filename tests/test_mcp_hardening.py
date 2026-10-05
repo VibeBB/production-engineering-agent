@@ -10,6 +10,7 @@ import pytest
 from mcp import types
 
 from prodeng import mcp_server
+from prodeng.records import DecisionInput, StageImpressionInput, VisionReviewInput
 
 
 def _call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
@@ -33,6 +34,30 @@ def test_unknown_mcp_tool_returns_error_result() -> None:
         {"verdict": "fail", "detail": "unknown tool unknown_tool"},
         indent=2,
         sort_keys=True,
+    )
+
+
+def test_records_mcp_tools_have_expected_read_write_hints() -> None:
+    tools = {tool.name: tool for tool in mcp_server.tool_specs()}
+
+    decision_annotations = tools["prodeng_record_decision"].annotations
+    impression_annotations = tools["prodeng_record_impression"].annotations
+    review_annotations = tools["prodeng_record_vision_review"].annotations
+    status_annotations = tools["prodeng_records_status"].annotations
+    assert decision_annotations is not None
+    assert impression_annotations is not None
+    assert review_annotations is not None
+    assert status_annotations is not None
+    assert decision_annotations.readOnlyHint is False
+    assert impression_annotations.readOnlyHint is False
+    assert review_annotations.readOnlyHint is False
+    assert status_annotations.readOnlyHint is True
+    assert tools["prodeng_record_decision"].inputSchema == DecisionInput.model_json_schema()
+    assert (
+        tools["prodeng_record_impression"].inputSchema == StageImpressionInput.model_json_schema()
+    )
+    assert (
+        tools["prodeng_record_vision_review"].inputSchema == VisionReviewInput.model_json_schema()
     )
 
 

@@ -22,6 +22,10 @@ EXPECTED_TOOLS = {
     "prodeng_requests",
     "prodeng_liaison",
     "prodeng_sample",
+    "prodeng_record_decision",
+    "prodeng_record_impression",
+    "prodeng_record_vision_review",
+    "prodeng_records_status",
 }
 
 

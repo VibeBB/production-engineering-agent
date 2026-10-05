@@ -21,12 +21,16 @@ import shlex
 import sys
 from typing import Any, cast
 
-ARTIFACT_SUFFIXES = (".prodeng-request.json",)
+ARTIFACT_SUFFIXES = (".prodeng-request.json", ".ux-response.json")
 ARTIFACT_NAMES = (
     "manifest.json",
     "provenance.json",
     "prodeng-report.json",
     "prodeng-report.md",
+    "decisions.jsonl",
+    "impressions.jsonl",
+    "vision-reviews.jsonl",
+    "records-status.json",
 )
 WRITE_TOOLS = {"file_editor", "apply_patch"}
 VIEW_ACTIONS = {"view", "read", "undo_edit"}

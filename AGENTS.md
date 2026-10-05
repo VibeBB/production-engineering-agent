@@ -35,7 +35,8 @@ creates digest locks after an image is published.
 Agents declare their hooks explicitly because hooks do not propagate to
 sub-agents. Delegate with the OpenHands `task_tool_set` tool. AgentDefinitions do not
 declare a `skills:` field; prompts reference skill files. The review agent
-is read-only and has no MCP configuration.
+never edits files or issues verdicts; its only writes are VRP records through
+the record MCP tools.
 
 ## Development
 

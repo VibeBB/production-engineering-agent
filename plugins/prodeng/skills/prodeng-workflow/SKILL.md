@@ -62,3 +62,27 @@ Exit codes: `0` means command success (and a passing author verdict),
 `1` means a gate verdict is fail/unknown or a runtime check failed, and `2`
 means invalid input or usage. A valid contract can still receive an unknown
 gate verdict; report it as blocked.
+
+## Records you must leave
+
+Use `prodeng_record_decision`, `prodeng_record_impression`, and
+`prodeng_record_vision_review` throughout each workflow. Record every
+non-trivial choice, including takt or shift assumptions, operation split and
+line balance, inspection method and sampling level/AQL, PFMEA
+severity/occurrence/detection ratings and action priority, poka-yoke versus
+inspection, fixture/test-access strategy, FTM entry/lockout design, and
+request risk level.
+
+Leave an impression at the end of each stage, after final regeneration:
+`intake`, `contract`, `gates`, `projections` (control plan,
+inspection/sampling, line balance, PFMEA, TWI, and FTM), `vision-review`,
+`liaison`, and `handoff`. Bind it to the final artifact paths. Each
+impression must be at least 400 characters and 3 distinct sentences about
+what you noticed, what works, what worries you, how a maker or user would
+read the result, and what to do next.
+
+Whenever an image is viewed, record a `vision_review` bound to its path or
+vision-event ID. Judge accuracy, ambiguity, design intent, and whether the
+shop floor can act on it. The CLI equivalents are
+`python -m prodeng record decision|impression|vision-review --json <file>`
+and `python -m prodeng record status`.

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "plugin": "prodeng",
+  "records_dir": "observations/prodeng",
+  "artifact_globs": [
+    "**/*.prodeng.json",
+    "**/*.prodeng-request.json",
+    "**/control-plan.csv",
+    "**/inspection-plan.json",
+    "**/sampling-plans.json",
+    "**/line-balance.csv",
+    "**/pfmea.csv",
+    "**/work-instructions.md",
+    "**/factory-test-spec.json",
+    "**/factory-test-spec.md",
+    "**/prodeng-report.json",
+    "**/prodeng-report.md",
+    "**/renders/*.png",
+    "liaison/*.ux-response.json"
+  ],
+  "ignore_globs": ["examples/**", "tests/**", ".devin/**"],
+  "max_stop_denials": 2,
+  "record_hint": "Use the MCP tools prodeng_record_decision, prodeng_record_impression and prodeng_record_vision_review (or `python -m prodeng record decision|impression|vision-review --json <file>`). Impressions need at least 400 characters and 3 sentences: what you noticed, what works, what worries you, how a maker or user would read it, and what to do next."
+}

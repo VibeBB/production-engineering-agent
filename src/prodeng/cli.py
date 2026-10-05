@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from . import __version__
 from .contract import ProdengContract, contract_json, load_contract
@@ -13,6 +14,7 @@ from .doctor import run_doctor
 from .gates import run_gates
 from .imports import IMPORT_SYSTEMS, import_source
 from .projections import write_projections
+from .records import RECORDERS, records_summary
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -162,6 +164,21 @@ def _cmd_sample(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_record(args: argparse.Namespace) -> int:
+    if args.kind == "status":
+        _print(records_summary())
+        return 0
+    try:
+        raw = json.loads(Path(args.json).read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("record JSON must be an object")
+        payload = RECORDERS[args.kind](cast(dict[str, Any], raw))
+    except (OSError, ValueError) as exc:
+        return _error("record", exc)
+    _print(payload)
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="prodeng")
     root.add_argument("--version", action="version", version=f"prodeng {__version__}")
@@ -209,6 +226,14 @@ def parser() -> argparse.ArgumentParser:
     sample.add_argument("--aql", required=True, type=float)
     sample.add_argument("--level", default="II")
     sample.set_defaults(func=_cmd_sample)
+
+    record = sub.add_parser("record")
+    record_kinds = record.add_subparsers(dest="kind", required=True)
+    for kind in ("decision", "impression", "vision-review"):
+        writer = record_kinds.add_parser(kind)
+        writer.add_argument("--json", required=True)
+    record_kinds.add_parser("status")
+    record.set_defaults(func=_cmd_record)
 
     mcp = sub.add_parser("mcp_server")
     mcp.set_defaults(func=_cmd_mcp)

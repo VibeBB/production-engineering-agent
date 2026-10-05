@@ -19,6 +19,15 @@ from .doctor import run_doctor
 from .gates import run_gates
 from .imports import ImportKind, import_source
 from .projections import write_projections
+from .records import (
+    DecisionInput,
+    StageImpressionInput,
+    VisionReviewInput,
+    record_decision,
+    record_impression,
+    record_vision_review,
+    records_summary,
+)
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -28,6 +37,14 @@ from .workspace import workspace_path
 server = Server(f"prodeng-mcp/{__version__}")
 
 _SCHEMAS: dict[str, dict[str, Any]] = {
+    "prodeng_record_decision": DecisionInput.model_json_schema(),
+    "prodeng_record_impression": StageImpressionInput.model_json_schema(),
+    "prodeng_record_vision_review": VisionReviewInput.model_json_schema(),
+    "prodeng_records_status": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
     "prodeng_doctor": {"type": "object", "properties": {}, "additionalProperties": False},
     "prodeng_validate": {
         "type": "object",
@@ -105,6 +122,20 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
     },
 }
 _TOOL_DESCRIPTIONS = {
+    "prodeng_record_decision": (
+        "Record a production-engineering decision with principles, options, rationale, "
+        "evidence, assumptions, unknowns, risks, and a revisit trigger."
+    ),
+    "prodeng_record_impression": (
+        "Record a 400+ character, 3+ sentence impression of a completed production stage, "
+        "bound to its final artifacts."
+    ),
+    "prodeng_record_vision_review": (
+        "Record a 400+ character review of an image, bound to its path or vision-event ID."
+    ),
+    "prodeng_records_status": (
+        "Count production-engineering records and report the last Stop-hook verdict."
+    ),
     "prodeng_doctor": "Report package, Python, and locked tools-image diagnostics.",
     "prodeng_validate": "Validate a production-engineering contract and its cross-references.",
     "prodeng_gates": "Evaluate deterministic gates for a production-engineering contract.",
@@ -116,6 +147,9 @@ _TOOL_DESCRIPTIONS = {
     "prodeng_sample": "Select an attribute sampling plan for a lot, AQL, and inspection level.",
 }
 _WRITE_TOOLS = {
+    "prodeng_record_decision",
+    "prodeng_record_impression",
+    "prodeng_record_vision_review",
     "prodeng_export",
     "prodeng_author",
     "prodeng_import",
@@ -186,6 +220,14 @@ def _workspace_path_argument(key: str, value: Any, required_paths: set[str]) -> 
 async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, object]:
     if name == "prodeng_doctor":
         return run_doctor()
+    if name == "prodeng_record_decision":
+        return record_decision(arguments)
+    if name == "prodeng_record_impression":
+        return record_impression(arguments)
+    if name == "prodeng_record_vision_review":
+        return record_vision_review(arguments)
+    if name == "prodeng_records_status":
+        return records_summary()
     if name == "prodeng_liaison":
         status = liaison_status(Path(arguments["directory"]))
         return {"verdict": "pass", "stage": "liaison", **status.model_dump(mode="json")}
