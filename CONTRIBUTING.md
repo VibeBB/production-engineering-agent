@@ -29,7 +29,7 @@ Do not fabricate image digests; publication workflows create locks.
   request projections.
 - Treat product safety/certification limits as controlled external inputs.
 - Keep code, docs, issues, PRs, and commits in English; Japanese is used in
-  `README.ja.md` and bilingual examples in agent/skill frontmatter.
+  the `## 日本語` section of `README.md` and bilingual examples in agent/skill frontmatter.
 
 ## Review and submission
 
