@@ -9,7 +9,7 @@ tree and the workspace so paths stay identical inside the container.
 Source resolution order (first directory containing prodeng/__init__.py wins):
   1. $PRODENG_SRC
   2. newest ~/.openhands/cache/extensions/production-engineering-agent-*/src
-  3. /opt/prodeng/src (prodeng-server image)
+  3. /opt/prodeng/src (when mounted in the runtime environment)
   4. <repo>/src when running from a repository checkout
   5. none found -> the image's own baked package is used
 
