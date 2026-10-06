@@ -43,6 +43,7 @@ produces fail; with no failures, any unknown produces unknown.
 | `work_instruction.steps` | Operation | At least one work element exists and each has a key point. |
 | `work_instruction.safety` | Operation | Hazards have precautions; hipot/ground-bond operation declares hazards. |
 | `imports.fresh` | Import | Source exists and SHA-256 matches; a mismatch fails, and a missing source is unknown. |
+| `sim.prediction` | Simulation | A characteristic's pinned simulation-agent report check passes and predicts a value inside `[lsl, usl]`; a changed report or a simulation fail fails, and a missing report, check, or numeric prediction is unknown. |
 | `requirements.open_questions` | Open question | Open `Q` requirement is unknown. |
 
 `ftm.present` is emitted only when an FCT inspection exists. Sampling plans
