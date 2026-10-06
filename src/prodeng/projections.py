@@ -331,9 +331,14 @@ def _ftm_spec(contract: ProdengContract) -> dict[str, Any]:
     }
 
 
+def ftm_spec_bytes(contract: ProdengContract) -> bytes:
+    """Exact bytes of ``factory-test-spec.json``; firmware pins their sha256."""
+    return (json.dumps(_ftm_spec(contract), indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
 def _write_ftm(contract: ProdengContract, out_dir: Path) -> None:
     spec = _ftm_spec(contract)
-    _json_write(out_dir / "factory-test-spec.json", spec)
+    (out_dir / "factory-test-spec.json").write_bytes(ftm_spec_bytes(contract))
     lines = [f"# Factory test specification — {contract.product.name}", ""]
     if not spec["declared"]:
         lines.extend([str(spec["reason"]), ""])

@@ -24,13 +24,17 @@ package.
 
 `import <contract> --from <kind> <file>` accepts
 `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`,
-`ux-contract`, and `fpga-production`. The importer stores a normalized system/kind, source
+`ux-contract`, `fpga-production`, and `firmware-production`. The importer stores a normalized system/kind, source
 path, SHA-256, and extracted facts; reimporting the same `(system, path)`
 replaces that record. `imports.fresh` checks the file relative to the
 contract directory. Missing files are unknown; changed digests fail.
 After importing `<design>.fpga-production.json`, list its device in the
 programming operation's `programs`; `fpga.programming` then re-checks the
 gated bitstream (flash target, SHA-256, size) at every gate run.
+Do the same with `<name>.fw-production.json` and the MCU reference;
+`firmware.programming` re-checks the gated ELF and that firmware was gated
+against the current `factory-test-spec.json`. When the factory test mode
+changes, ask firmware to re-pin its `ftm.sha256` and re-gate.
 
 ## Outbound SLP v2 format and risk
 

@@ -108,6 +108,7 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
                     "wire-contract",
                     "ux-contract",
                     "fpga-production",
+                    "firmware-production",
                 ],
             },
             "file": {"type": "string"},

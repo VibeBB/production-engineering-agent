@@ -231,7 +231,7 @@ class ImportedData(FrozenModel):
 
 
 class ImportRef(FrozenModel):
-    system: Literal["circuit", "mech", "wire", "ux", "fpga"]
+    system: Literal["circuit", "mech", "wire", "ux", "fpga", "firmware"]
     kind: (
         Literal[
             "circuit-brief",
@@ -240,6 +240,7 @@ class ImportRef(FrozenModel):
             "wire-contract",
             "ux-contract",
             "fpga-production",
+            "firmware-production",
         ]
         | None
     ) = None
@@ -289,21 +290,25 @@ class ProdengContract(FrozenModel):
             else set()
         )
         imports = {item.system for item in self.imports}
-        fpga_devices = {
+        programmed = [
             ref
             for item in self.imports
-            if item.kind == "fpga-production"
+            if item.kind in {"fpga-production", "firmware-production"}
             for ref in item.extracted.parts
-        }
+        ]
+        programmable = set(programmed)
+        if len(programmable) != len(programmed):
+            raise ValueError("a device is provided by more than one programming import")
         for operation in self.operations:
             if operation.programs and operation.kind != "programming":
-                raise ValueError(f"{operation.id} programs FPGA devices but is not programming")
+                raise ValueError(f"{operation.id} programs devices but is not programming")
             if len(set(operation.programs)) != len(operation.programs):
-                raise ValueError(f"{operation.id} lists an FPGA device twice")
+                raise ValueError(f"{operation.id} lists a device twice")
             for ref in operation.programs:
-                if ref not in fpga_devices:
+                if ref not in programmable:
                     raise ValueError(
-                        f"{operation.id} programs {ref!r}, which no fpga-production import provides"
+                        f"{operation.id} programs {ref!r}, which no fpga-production "
+                        "or firmware-production import provides"
                     )
         for characteristic in self.characteristics:
             for source in characteristic.sources:

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "system": "firmware",
+  "artifact_kind": "firmware_production",
+  "design": "smart-kettle",
+  "contract_sha256": "c8acde994c86ef486a8d437980d9ef1e6872ddf758c84359b0b9f2194eae7456",
+  "gate_report_sha256": "5a4a4ee41606113de1526a75b1b5bdab2db3ede83a7c476a3cea4323a358d9b1",
+  "mcu_ref": "U1",
+  "mcu_profile": "rp2040",
+  "part": "RP2040",
+  "package": "QFN-56",
+  "elf": "../fw/build/smart-kettle.elf",
+  "elf_sha256": "4bd85e5665730e81b7b56034d030821c8583f7e6b4d25d6e366f37aadf45685c",
+  "elf_bytes": 79672,
+  "ftm_spec_sha256": "a155986ef316a71057cc444e41686cd7f1424200492c3593a89247d236b05a72",
+  "ftm_commands": [
+    "TC-01",
+    "TC-02"
+  ]
+}

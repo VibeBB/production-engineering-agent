@@ -10,7 +10,8 @@ from typing import Literal
 from pydantic import ValidationError
 
 from .contract import ImportRef, Inspection, ProdengContract
-from .imports import FpgaProductionSource
+from .imports import FirmwareProductionSource, FpgaProductionSource
+from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
 
 Verdict = Literal["pass", "fail", "unknown"]
@@ -359,6 +360,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
         checks.append(_freshness_check(imported, contract_dir))
         if imported.kind == "fpga-production":
             checks.append(_fpga_programming_check(contract, imported, contract_dir))
+        if imported.kind == "firmware-production":
+            checks.append(_firmware_programming_check(contract, imported, contract_dir))
 
     for question in sorted(
         (
@@ -465,6 +468,82 @@ def _fpga_programming_check(
         digest,
         artifact.bitstream_sha256,
         f"{', '.join(operations)} runs: {' '.join(artifact.argv)}",
+    )
+
+
+def _ftm_problem(contract: ProdengContract, artifact: FirmwareProductionSource) -> str | None:
+    ftm = contract.factory_test_mode
+    if ftm is None:
+        if artifact.ftm_spec_sha256 is not None:
+            return "firmware serves a factory test spec this contract no longer declares"
+        return None
+    current = hashlib.sha256(ftm_spec_bytes(contract)).hexdigest()
+    if artifact.ftm_spec_sha256 is None:
+        return "firmware was gated without the factory test spec; pin it in the firmware ftm block"
+    if artifact.ftm_spec_sha256 != current:
+        return (
+            f"firmware was gated against factory test spec {artifact.ftm_spec_sha256}, "
+            f"current is {current}; re-pin ftm.sha256 in firmware and re-gate"
+        )
+    expected = sorted(command.id for command in ftm.commands)
+    if artifact.ftm_commands != expected:
+        return f"firmware serves {artifact.ftm_commands}, the spec declares {expected}"
+    return None
+
+
+def _firmware_programming_check(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> GateCheck:
+    """The programming operation flashes exactly the ELF firmware-agent gated."""
+    gate = "firmware.programming"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return _check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return _check(gate, imported.path, "fail", detail="artifact changed since import")
+    try:
+        artifact = FirmwareProductionSource.model_validate_json(raw)
+    except ValidationError as exc:
+        return _check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")
+    subject = artifact.mcu_ref
+    operations = sorted(op.id for op in contract.operations if subject in op.programs)
+    if not operations:
+        return _check(gate, subject, "fail", detail="no programming operation programs it")
+    elf = path.parent / artifact.elf
+    try:
+        data = elf.read_bytes()
+    except OSError as exc:
+        return _check(gate, subject, "unknown", detail=f"ELF unreadable: {exc}")
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != artifact.elf_sha256 or len(data) != artifact.elf_bytes:
+        return _check(
+            gate,
+            subject,
+            "fail",
+            digest,
+            artifact.elf_sha256,
+            "ELF differs from the one firmware-agent gated",
+        )
+    problem = _ftm_problem(contract, artifact)
+    if problem is not None:
+        return _check(gate, subject, "fail", digest, artifact.elf_sha256, problem)
+    ftm = (
+        f"serves {', '.join(artifact.ftm_commands)} of factory test spec {artifact.ftm_spec_sha256}"
+        if artifact.ftm_spec_sha256
+        else "no factory test mode"
+    )
+    return _check(
+        gate,
+        subject,
+        "pass",
+        digest,
+        artifact.elf_sha256,
+        f"{', '.join(operations)} flashes {artifact.elf} on {artifact.part} "
+        f"({artifact.package}); {ftm}",
     )
 
 

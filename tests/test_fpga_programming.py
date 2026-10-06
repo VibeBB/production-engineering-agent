@@ -146,7 +146,7 @@ def test_import_rejects_malformed_artifact(tmp_path: Path) -> None:
 
 def test_programs_must_reference_an_imported_device(tmp_path: Path) -> None:
     contract, _, _ = _imported(tmp_path, _artifact())
-    with pytest.raises(ValidationError, match="no fpga-production import"):
+    with pytest.raises(ValidationError, match="no fpga-production or firmware-production import"):
         _bound(contract, ["U7"])
     with pytest.raises(ValidationError, match="twice"):
         _bound(contract, ["U1", "U1"])

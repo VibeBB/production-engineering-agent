@@ -30,7 +30,7 @@ unknown. Argparse usage errors also return `2`.
 | `export CONTRACT [--out DIR]` | Contract and optional output directory. | Writes projections; default `CONTRACT_DIR/out/<product>/`; `0` on success, `2` on error. |
 | `author CONTRACT [--out DIR] [--render]` | Contract, optional output directory, optional PNG generation. | Writes projections, sibling requests, and report. CLI rendering is opt-in; `0` pass, `1` fail/unknown, `2` on error. |
 | `render CONTRACT [--out DIR]` | Contract and optional output directory. | Renders directly from the contract, without exporting projections; default `CONTRACT_DIR/out/<product>/`; `0` on success, `2` on error. |
-| `import CONTRACT --from KIND FILE` | `KIND` is `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`, `ux-contract`, or `fpga-production`. | Imports supported data into the contract and records source provenance; `0` success, `2` error. |
+| `import CONTRACT --from KIND FILE` | `KIND` is `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`, `ux-contract`, `fpga-production`, or `firmware-production`. | Imports supported data into the contract and records source provenance; `0` success, `2` error. |
 | `requests CONTRACT [--out DIR]` | Contract and optional request directory. | Derives and writes `*.prodeng-request.json`; default is the contract directory; `0` success, `2` error. |
 | `liaison DIRECTORY` | Directory containing `*.prodeng-request.json` and `*.prodeng-response.json`. | Prints reconciliation state; `0` success, `2` error. |
 | `ux inbox` | none | Scans workspace `liaison/*.ux-request.json`; `0` for a passing inbox result, `2` on error. |
