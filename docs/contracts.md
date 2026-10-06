@@ -11,7 +11,7 @@ Its top-level fields are:
 | `product` | Lowercase product slug, revision, optional description. |
 | `volume` | Annual demand, working days, shifts, available minutes per shift, lot size; takt is derived from these values. |
 | `requirements` | Requirement, assumption, and question records with IDs, text, kind, and open/resolved status. |
-| `characteristics` | Product characteristics with classification, variable/attribute kind, measurement limits or acceptance criterion, unit, and sources. |
+| `characteristics` | Product characteristics with classification, variable/attribute kind, measurement limits or acceptance criterion, unit, sources, and an optional `simulation` prediction (`report_path`, `sha256`, `check_id` of a simulation-agent `sim-report.json` check; variable characteristics only). |
 | `operations` | Ordered process operations with station, cycle time, operators, tools/fixtures, safety data, and TWI work elements. |
 | `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references. |
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
