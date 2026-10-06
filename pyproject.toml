@@ -65,14 +65,14 @@ source = ["src/prodeng"]
 # Ratchet floors (percent) for scripts/structural_coverage.py, measured on
 # main minus one point for interpreter variance. Raise them, never lower.
 c0 = 90
-c1 = 75
-decision = 71
-c2 = 69
-mcdc = 40
-boundary = 38
+c1 = 76
+decision = 73
+c2 = 71
+mcdc = 45
+boundary = 61
 
 [tool.coverage.report]
-fail_under = 86
+fail_under = 88
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

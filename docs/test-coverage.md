@@ -99,3 +99,26 @@ find what they missed.
 - **Mutation testing**: a mutant (a flipped comparison, a removed condition)
   that survives the suite marks an assertion that is missing even though the
   line is covered. Mutation runs are advisory evidence, not a CI gate.
+
+## Reference suite
+
+`tests/test_gate_boundaries.py` applies these techniques to the gates in
+`src/prodeng/gates.py`, the ISO 2859-1 tables in `src/prodeng/sampling.py`
+and the contract validators, following the family pattern set by
+wire-agent:
+
+- 3-value boundaries, with `math.nextafter` for float limits, for station
+  takt, the factory-test duration budget, the factory-test station fit, the
+  two-condition entry guard, the PFMEA high-severity threshold (8/9/10), the
+  lot-size minimum, the AQL matching tolerance, the Table 2-A diagonal
+  offsets, and characteristic `lsl`/`nominal`/`usl` ordering;
+- equivalence classes over every Table 1 lot range edge for all seven
+  inspection levels, with properties over every lot edge x level x AQL plan
+  (`Re = Ac + 1`, full inspection exactly when the sample reaches the lot,
+  letters non-decreasing with lot size and level, `Ac` non-decreasing with
+  AQL);
+- decision tables for hazards x precautions x linked hipot/ground-bond
+  test, command coverage x inspection usage, sampling mode x AQL, and
+  requirement id prefix x kind;
+- fail-closed cases: an unmeasured cycle time makes takt and station fit
+  `unknown`, and an open question keeps the verdict from passing.
