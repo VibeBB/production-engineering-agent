@@ -24,10 +24,13 @@ package.
 
 `import <contract> --from <kind> <file>` accepts
 `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`,
-and `ux-contract`. The importer stores a normalized system/kind, source
+`ux-contract`, and `fpga-production`. The importer stores a normalized system/kind, source
 path, SHA-256, and extracted facts; reimporting the same `(system, path)`
 replaces that record. `imports.fresh` checks the file relative to the
 contract directory. Missing files are unknown; changed digests fail.
+After importing `<design>.fpga-production.json`, list its device in the
+programming operation's `programs`; `fpga.programming` then re-checks the
+gated bitstream (flash target, SHA-256, size) at every gate run.
 
 ## Outbound SLP v2 format and risk
 

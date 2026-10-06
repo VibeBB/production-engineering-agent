@@ -115,6 +115,7 @@ class Operation(FrozenModel):
     safety_hazards: list[str] = Field(default_factory=list[str])
     safety_precautions: list[str] = Field(default_factory=list[str])
     work_elements: list[WorkElement] = Field(default_factory=list[WorkElement])
+    programs: list[str] = Field(default_factory=list[str])
 
 
 class SamplingSpec(FrozenModel):
@@ -230,10 +231,15 @@ class ImportedData(FrozenModel):
 
 
 class ImportRef(FrozenModel):
-    system: Literal["circuit", "mech", "wire", "ux"]
+    system: Literal["circuit", "mech", "wire", "ux", "fpga"]
     kind: (
         Literal[
-            "circuit-brief", "circuit-connectivity", "mech-envelope", "wire-contract", "ux-contract"
+            "circuit-brief",
+            "circuit-connectivity",
+            "mech-envelope",
+            "wire-contract",
+            "ux-contract",
+            "fpga-production",
         ]
         | None
     ) = None
@@ -283,6 +289,22 @@ class ProdengContract(FrozenModel):
             else set()
         )
         imports = {item.system for item in self.imports}
+        fpga_devices = {
+            ref
+            for item in self.imports
+            if item.kind == "fpga-production"
+            for ref in item.extracted.parts
+        }
+        for operation in self.operations:
+            if operation.programs and operation.kind != "programming":
+                raise ValueError(f"{operation.id} programs FPGA devices but is not programming")
+            if len(set(operation.programs)) != len(operation.programs):
+                raise ValueError(f"{operation.id} lists an FPGA device twice")
+            for ref in operation.programs:
+                if ref not in fpga_devices:
+                    raise ValueError(
+                        f"{operation.id} programs {ref!r}, which no fpga-production import provides"
+                    )
         for characteristic in self.characteristics:
             for source in characteristic.sources:
                 if source not in requirements and not (

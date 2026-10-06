@@ -7,7 +7,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
 
+from pydantic import ValidationError
+
 from .contract import ImportRef, Inspection, ProdengContract
+from .imports import FpgaProductionSource
 from .sampling import SamplingPlan, sampling_plan
 
 Verdict = Literal["pass", "fail", "unknown"]
@@ -354,6 +357,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
 
     for imported in sorted(contract.imports, key=lambda item: (item.system, item.path)):
         checks.append(_freshness_check(imported, contract_dir))
+        if imported.kind == "fpga-production":
+            checks.append(_fpga_programming_check(contract, imported, contract_dir))
 
     for question in sorted(
         (
@@ -404,6 +409,62 @@ def _freshness_check(imported: ImportRef, contract_dir: Path) -> GateCheck:
         actual,
         imported.sha256,
         "sha256 matches" if matches else "sha256 mismatch",
+    )
+
+
+def _fpga_programming_check(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> GateCheck:
+    """The programming operation loads exactly the bitstream fpga-agent gated."""
+    gate = "fpga.programming"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return _check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return _check(gate, imported.path, "fail", detail="artifact changed since import")
+    try:
+        artifact = FpgaProductionSource.model_validate_json(raw)
+    except ValidationError as exc:
+        return _check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")
+    subject = artifact.device_ref
+    operations = sorted(op.id for op in contract.operations if subject in op.programs)
+    if not operations:
+        return _check(gate, subject, "fail", detail="no programming operation programs it")
+    if artifact.target != "flash":
+        return _check(
+            gate,
+            subject,
+            "fail",
+            artifact.target,
+            "flash",
+            "SRAM configuration is lost at power-off; set programmer.write_flash",
+        )
+    bitstream = path.parent / artifact.bitstream
+    try:
+        data = bitstream.read_bytes()
+    except OSError as exc:
+        return _check(gate, subject, "unknown", detail=f"bitstream unreadable: {exc}")
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != artifact.bitstream_sha256 or len(data) != artifact.bitstream_bytes:
+        return _check(
+            gate,
+            subject,
+            "fail",
+            digest,
+            artifact.bitstream_sha256,
+            "bitstream differs from the one fpga-agent gated",
+        )
+    return _check(
+        gate,
+        subject,
+        "pass",
+        digest,
+        artifact.bitstream_sha256,
+        f"{', '.join(operations)} runs: {' '.join(artifact.argv)}",
     )
 
 

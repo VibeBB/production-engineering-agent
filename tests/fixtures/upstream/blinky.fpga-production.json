@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "system": "fpga",
+  "artifact_kind": "fpga_production",
+  "design": "blinky",
+  "contract_sha256": "057c969548668e07e69bc3524461b6121cdc7ce26f242f19f724b7eec5aebd5d",
+  "gate_report_sha256": "03d9c6e4a21e367e861c8620953a598a48578dc26a0993a441dea3daec071417",
+  "device_ref": "U1",
+  "device_profile": "ecp5-lfe5u-85f-cabga381",
+  "part": "LFE5U-85F",
+  "package": "CABGA381",
+  "bitstream": "../build/blinky.bit",
+  "bitstream_sha256": "398a1aa63d2c487fed4135414f44d0f2c4e3795c8691984198e6db44940d0ea6",
+  "bitstream_bytes": 1927725,
+  "target": "sram",
+  "tool": "openFPGALoader",
+  "board": "ulx3s",
+  "cable": null,
+  "argv": [
+    "openFPGALoader",
+    "-b",
+    "ulx3s",
+    "../build/blinky.bit"
+  ]
+}
