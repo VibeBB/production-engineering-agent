@@ -31,6 +31,7 @@
   operation, release, and troubleshooting.
 - [Development](development.md): verification, guard tests, golden
   regeneration, and shared-hook policy.
+- [Test coverage and test design](test-coverage.md) — C0/C1/C2/MCC/MC/DC and boundary coverage, floors, test-design techniques
 - [Performance and limits](performance-and-limits.md): measured smart-kettle
   timings, image sizes, payload size, and caps.
 - [Improvement notes](improvement-notes.md): open follow-up work.
@@ -58,3 +59,4 @@
 - [0006 — Attest published tools images](adr/0006-attest-published-tools-images.md)
 - [0007 — Deterministic vision renders](adr/0007-deterministic-vision-renders.md)
 - [0008 — UX liaison v2 and VRP adoption](adr/0008-ux-liaison-v2-and-vrp-adoption.md)
+- [0009 — Structural coverage gate (C0, C1, C2, MC/DC, boundaries)](adr/0009-structural-coverage.md)

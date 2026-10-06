@@ -74,7 +74,8 @@ tests and checks for a change, then the prescribed verification set before
 submitting.
 
 The fast verification stage includes the shared-hook checker and enforces the
-configured line-coverage threshold. Shared hooks are canonical across the
+structural coverage floors (`scripts/structural_coverage.py`,
+`docs/test-coverage.md`). Shared hooks are canonical across the
 family; change all 9 copies together and update EXPECTED. `intake_attachments.py`,
 `protect_generated.py`, `record_image_observation.py`,
 `record_vision_tool_event.py`, and `report_prodeng_status.py` are
