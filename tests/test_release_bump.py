@@ -103,6 +103,7 @@ _SKILLS = (
     "prodeng-factory-test-mode",
     "prodeng-inspection",
     "prodeng-liaison",
+    "prodeng-out-rules",
     "prodeng-work-instructions",
     "prodeng-workflow",
 )

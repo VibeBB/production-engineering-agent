@@ -71,6 +71,7 @@ EXPECTED_SKILLS = {
     "prodeng-factory-test-mode",
     "prodeng-inspection",
     "prodeng-liaison",
+    "prodeng-out-rules",
     "prodeng-work-instructions",
     "prodeng-workflow",
 }
@@ -79,6 +80,7 @@ EXPECTED_SESSION_START_HOOKS = {
     "prodeng-doctor",
     "intake-attachments",
     "ensure-llm-profiles",
+    "ensure-agent-profiles",
     "require-records",
 }
 EXPECTED_USER_PROMPT_SUBMIT_HOOKS = {"intake-attachments"}
