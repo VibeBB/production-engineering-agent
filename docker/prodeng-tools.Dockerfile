@@ -16,20 +16,38 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
+# apt resilience: Acquire::Retries covers single fetches, not a mirror that
+# is down for minutes (archive.ubuntu.com outage killed several builds).
+# Retry the whole update+install round with bounded backoff.
 # procps ships `ps` so the container-audit Lynis run executes its
 # process/crypto/account checks instead of aborting 84 sub-tests.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git procps \
-    && rm -rf /var/lib/apt/lists/*
+RUN for attempt in 1 2 3 4 5; do \
+        apt-get -o Acquire::Retries=5 update \
+        && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+            ca-certificates \
+            git \
+            procps \
+        && rm -rf /var/lib/apt/lists/* \
+        && break; \
+        [ "$attempt" = 5 ] && exit 1; \
+        echo "::warning::apt update+install attempt ${attempt} failed; retrying"; \
+        sleep $((attempt * 30)); \
+    done
 
 # The pinned debian:13-slim digest keeps shipping the deb Trivy flags at
 # publish (CVE-2026-103111 libpcre2-8-0). Upgrade just that package inside
 # the build so the publish gate stays green.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        --only-upgrade \
-        libpcre2-8-0 \
-    && rm -rf /var/lib/apt/lists/*
+RUN for attempt in 1 2 3 4 5; do \
+        apt-get -o Acquire::Retries=5 update \
+        && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+            --only-upgrade \
+            libpcre2-8-0 \
+        && rm -rf /var/lib/apt/lists/* \
+        && break; \
+        [ "$attempt" = 5 ] && exit 1; \
+        echo "::warning::apt update+install attempt ${attempt} failed; retrying"; \
+        sleep $((attempt * 30)); \
+    done
 
 # Tighten the login.defs umask to 027 (Lynis AUTH-9328): the image has no
 # interactive users, so files created at runtime stay group-readable only.
