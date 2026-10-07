@@ -223,13 +223,6 @@ jobs:
             env:
               TOOLS_REF: ${{ env.TOOLS_REF }}
             run: uv run python scripts/measure_image_tools.py --image-ref "$TOOLS_REF" --out "$RUNNER_TEMP/prodeng-tools.json"
-      - name: Upload Trivy SARIF
-        # A rehearsal must not file code-scanning alerts.
-        if: always() && inputs.dry_run != true && hashFiles('trivy-image.sarif') != ''
-        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
-        with:
-          sarif_file: trivy-image.sarif
-          category: trivy-prodeng-tools
       - name: Upload Trivy JSON report
         if: always() && hashFiles('trivy-image.json') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -442,6 +435,13 @@ jobs:
               echo "- $wf run: $url" >> "$GITHUB_STEP_SUMMARY"
             fi
           done
+      - name: Upload Trivy SARIF
+        # A rehearsal must not file code-scanning alerts.
+        if: always() && inputs.dry_run != true && hashFiles('trivy-image.sarif') != ''
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-prodeng-tools
       - name: Dry-run rehearsal summary
         if: always() && inputs.dry_run == true
         run: |
