@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import ValidationError
 
-from .contract import ImportRef, Inspection, ProdengContract
+from .contract import Characteristic, ImportRef, Inspection, ProdengContract
 from .imports import FirmwareProductionSource, FpgaProductionSource
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
@@ -363,6 +365,10 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
         if imported.kind == "firmware-production":
             checks.append(_firmware_programming_check(contract, imported, contract_dir))
 
+    for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
+        if characteristic.simulation is not None:
+            checks.append(_sim_prediction_check(characteristic, contract_dir))
+
     for question in sorted(
         (
             requirement
@@ -545,6 +551,78 @@ def _firmware_programming_check(
         f"{', '.join(operations)} flashes {artifact.elf} on {artifact.part} "
         f"({artifact.package}); {ftm}",
     )
+
+
+def _window(characteristic: Characteristic) -> str:
+    low = "-inf" if characteristic.lsl is None else f"{characteristic.lsl:g}"
+    high = "+inf" if characteristic.usl is None else f"{characteristic.usl:g}"
+    return f"[{low}, {high}] {characteristic.unit}"
+
+
+def _sim_prediction_check(characteristic: Characteristic, contract_dir: Path) -> GateCheck:
+    """Simulation must pass and predict the characteristic inside its production window."""
+    prediction = characteristic.simulation
+    assert prediction is not None
+    window = _window(characteristic)
+
+    def result(
+        status: GateStatus, detail: str, measured: int | float | str | None = None
+    ) -> GateCheck:
+        return _check("sim.prediction", characteristic.id, status, measured, window, detail)
+
+    path = Path(prediction.report_path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    if not path.is_file():
+        return result("unknown", f"sim report is missing: {prediction.report_path}")
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        return result("unknown", f"could not read sim report: {exc}")
+    if hashlib.sha256(data).hexdigest() != prediction.sha256:
+        return result("fail", "sim report changed since it was pinned (sha256 mismatch)")
+    try:
+        report: object = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return result("unknown", f"sim report is not JSON: {exc}")
+    rows: list[object] = []
+    if isinstance(report, dict):
+        raw = cast(dict[str, object], report).get("checks")
+        if isinstance(raw, list):
+            rows = cast(list[object], raw)
+    matches = [
+        cast(dict[str, object], item)
+        for item in rows
+        if isinstance(item, dict) and cast(dict[str, object], item).get("id") == prediction.check_id
+    ]
+    if len(matches) != 1:
+        return result("unknown", f"sim report has no single check {prediction.check_id}")
+    row = matches[0]
+    verdict = row.get("verdict")
+    if verdict == "fail":
+        return result("fail", f"simulation fails {prediction.check_id}")
+    if verdict != "pass":
+        return result("unknown", f"simulation verdict for {prediction.check_id} is {verdict!r}")
+    measured = row.get("measured")
+    if (
+        isinstance(measured, bool)
+        or not isinstance(measured, int | float)
+        or not math.isfinite(measured)
+    ):
+        return result("unknown", f"{prediction.check_id} has no finite predicted value")
+    low, high = characteristic.lsl, characteristic.usl
+    if (low is not None and measured < low) or (high is not None and measured > high):
+        return result(
+            "fail", f"design predicts {measured:g} outside the production window", measured
+        )
+    headroom = min(
+        measured - low if low is not None else math.inf,
+        high - measured if high is not None else math.inf,
+    )
+    detail = f"predicted {measured:g} inside the window; headroom {headroom:g}"
+    if low is not None and high is not None and high > low:
+        detail += f" ({headroom / (high - low):.0%} of tolerance)"
+    return result("pass", detail, measured)
 
 
 def run_gates(contract: ProdengContract, contract_dir: Path | str = ".") -> GateReport:

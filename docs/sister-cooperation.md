@@ -47,6 +47,18 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
+## Simulation predictions
+
+A variable characteristic can pin one check of a simulation-agent
+`sim-report.json` (`simulation.report_path`, `sha256`, `check_id`). The
+`sim.prediction` gate passes only when the report is unchanged, simulation
+passes that check, and its predicted value lies inside the characteristic's
+`[lsl, usl]` window; the detail reports the headroom to the nearest limit.
+A changed report or a simulation fail fails; a missing report, check, or
+finite prediction is unknown. Factory measurements are not imported; the
+link only proves the design is predicted to fall inside the production
+test window.
+
 ## Outbound requests and inbound sibling replies
 
 `prodeng_author` and `prodeng_requests` generate

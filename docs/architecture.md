@@ -45,6 +45,7 @@ produces fail; with no failures, any unknown produces unknown.
 | `imports.fresh` | Import | Source exists and SHA-256 matches; a mismatch fails, and a missing source is unknown. |
 | `firmware.programming` | MCU | A `programming` operation lists the MCU in `programs`, the ELF still has the gated SHA-256 and size, and the firmware was gated against the current `factory-test-spec.json` and its command ids (or neither side declares a factory test mode); an unreadable artifact or ELF is unknown. |
 | `fpga.programming` | FPGA device | A `programming` operation lists the device in `programs`, the target is `flash`, and the bitstream still has the gated SHA-256 and size; an unreadable artifact or bitstream is unknown. |
+| `sim.prediction` | Simulation | A characteristic's pinned simulation-agent report check passes and predicts a value inside `[lsl, usl]`; a changed report or a simulation fail fails, and a missing report, check, or numeric prediction is unknown. |
 | `requirements.open_questions` | Open question | Open `Q` requirement is unknown. |
 
 `ftm.present` is emitted only when an FCT inspection exists. Sampling plans

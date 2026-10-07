@@ -55,6 +55,14 @@ class Requirement(FrozenModel):
         return self
 
 
+class SimPrediction(FrozenModel):
+    """Hash-pinned simulation-agent report check that predicts a characteristic."""
+
+    report_path: str = Field(min_length=1)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    check_id: str = Field(min_length=1)
+
+
 class Characteristic(FrozenModel):
     id: str = Field(pattern=r"^CH-[0-9]{2,4}$")
     description: str = Field(min_length=1)
@@ -66,9 +74,12 @@ class Characteristic(FrozenModel):
     usl: float | None = None
     criterion: str = ""
     sources: list[str] = Field(min_length=1)
+    simulation: SimPrediction | None = None
 
     @model_validator(mode="after")
     def validate_type_requirements(self) -> Characteristic:
+        if self.simulation is not None and self.kind != "variable":
+            raise ValueError(f"{self.id} simulation prediction requires a variable characteristic")
         if self.lsl is not None and self.usl is not None and self.lsl > self.usl:
             raise ValueError(f"{self.id} lsl must be <= usl")
         if self.nominal is not None and self.lsl is not None and self.nominal < self.lsl:
