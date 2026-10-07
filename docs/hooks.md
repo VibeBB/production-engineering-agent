@@ -10,7 +10,8 @@ agent's frontmatter; they do not inherit the plugin-wide configuration.
 | --- | --- | --- |
 | `session_start`, `*` | `prodeng-doctor` | Reports package, Python, and tools-image diagnostics and can stop startup when plugin root resolution fails. |
 | `session_start`, `*`; `user_prompt_submit`, `*`; `stop`, `*` | `intake-attachments` | Scans available AgentCanvas conversation events for user image blocks, materializes them under `intake/attachments/`, and appends provenance to `manifest.jsonl`. It is idempotent and falls back to manual intake when the event store is unavailable. |
-| `session_start`, `*` | `ensure-llm-profiles` | Ensures the configured author/review profiles exist when possible and reports vision capability status. |
+| `session_start`, `*` | `ensure-llm-profiles` | Ensures the configured author/review/`oracle` profiles exist when possible and reports vision capability status for the two VibeBB lanes. |
+| `session_start`, `*` | `ensure-agent-profiles` | Writes `~/.openhands/agent-profiles/vibebb-prodeng.json` when missing: openhands-kind, `llm_profile_ref=vibebb-author`, MCP scoped to `prodeng`, no secrets (shared canon). |
 | `session_start`, `*` | `require-records` | Loads the prodeng policy and creates the per-session marker used by Stop enforcement. |
 | `pre_tool_use`, `file_editor|apply_patch|terminal` | `protect-generated` | Denies manual writes to protected generated outputs, records, and generated request/UX-response files. Views and reads remain allowed. Sister `*.prodeng-response.json` files remain writable. |
 | `pre_tool_use`, `terminal` | `safety-rail` | Pattern-matches a denylist of catastrophic filesystem/device/power actions and prohibited Git operations. It is a narrow deterministic rail, not a general shell security analyzer. |
@@ -20,7 +21,13 @@ agent's frontmatter; they do not inherit the plugin-wide configuration.
 | `post_tool_use`, `file_editor|terminal|prodeng_render|prodeng_author` | `record-image-observation` | Finds images actually viewed or named in successful tool responses and records their paths and byte hashes. |
 
 Hooks resolve the plugin root from `PRODENG_PLUGIN_ROOT`, the project plugin
-directory, or the supported user plugin-install locations. They do not
+directory, or the supported user plugin-install locations
+(`~/.agents/plugins/prodeng`, `~/.openhands/plugins/installed/prodeng`,
+`${HOME}/plugins/installed/prodeng`,
+`${OH_PERSISTENCE_DIR}/plugins/installed/prodeng`). The last two candidates
+resolve the plugin inside an OpenHands docker conversation runtime (inner
+`HOME=/var/openhands/.openhands`), where `prodeng_launcher.py` then fails
+closed with guidance — docker is unavailable there by design. Hooks do not
 silently run a different plugin implementation.
 
 ## Agent-declared hooks
@@ -52,9 +59,9 @@ Records explain work but never affect deterministic gates.
 ## Canonical and repo-specific implementations
 
 `scripts/check_shared_hooks.py` checks normalized AST hashes for the shared
-`ensure_llm_profiles.py`, `_provenance.py`, `safety_rail.py`, `_records.py`,
-and `require_records.py` implementations. It requires all of those files
-except `_provenance.py`. Shared copies must remain canonical and be updated
+`ensure_llm_profiles.py`, `ensure_agent_profiles.py`, `_provenance.py`,
+`safety_rail.py`, `_records.py`, and `require_records.py` implementations.
+It requires all of those files except `_provenance.py`. Shared copies must remain canonical and be updated
 together with that checker. In this plugin,
 `prodeng_doctor.py`, `intake_attachments.py`, `protect_generated.py`,
 `record_image_observation.py`, `record_vision_tool_event.py`, and

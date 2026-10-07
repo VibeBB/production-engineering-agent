@@ -1,6 +1,6 @@
 # Skills
 
-All eight skills are installed under `plugins/prodeng/skills/`. They provide
+All nine skills are installed under `plugins/prodeng/skills/`. They provide
 workflow guidance; the contract schema, deterministic code, and hook policy
 remain authoritative.
 
@@ -12,6 +12,7 @@ remain authoritative.
 | `prodeng-factory-test-mode` | Specify guarded FTM entry, field lockout, bounded commands, provisioning, and ownership boundaries. |
 | `prodeng-inspection` | Classify characteristics, design inspection coverage, and use supported ISO 2859-1 sampling conservatively. |
 | `prodeng-liaison` | Answer UX-creator requests and reconcile versioned sister requests and responses. |
+| `prodeng-out-rules` | Path rule on `**/out/**`: generated artifacts are read-only projections — change the contract and regenerate (the `protect-generated` hook enforces). |
 | `prodeng-work-instructions` | Author safe, traceable TWI Job Instruction work elements in the contract. |
 | `prodeng-workflow` | Run the end-to-end workflow from intake and contract authoring through gates, projections, visual review, liaison, and handoff. |
 
