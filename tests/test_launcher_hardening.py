@@ -145,3 +145,39 @@ def test_lock_entry_ref_preserves_attestation_metadata(tmp_path: Path) -> None:
         "digest": digest,
         "attestation": attestation,
     }
+
+
+def test_container_user_rootless(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Rootless daemons get 0:0 — the host uid maps to an unusable subuid."""
+    import os
+
+    launcher = _load_launcher()
+    monkeypatch.setattr(
+        launcher,
+        "_docker_info_security_options",
+        lambda: '["name=seccomp,profile=builtin","name=rootless","name=cgroupns"]',
+    )
+    assert launcher._container_user() == "0:0"
+    argv = launcher._docker_argv("prodeng-tools:test", None, ["python", "-m", "prodeng.cli"])
+    assert argv[argv.index("--user") + 1] == "0:0"
+    monkeypatch.setattr(launcher, "_docker_info_security_options", lambda: None)
+    assert launcher._container_user() == f"{os.getuid()}:{os.getgid()}"
+
+
+def test_run_in_locked_image_container_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    """scripts/run_in_locked_image.py shares the same rootless rule."""
+    import os
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[1]
+    monkeypatch.setattr(sys, "path", [str(repo_root / "scripts"), *sys.path])
+    spec = importlib.util.spec_from_file_location(
+        "run_in_locked_image_test", repo_root / "scripts" / "run_in_locked_image.py"
+    )
+    assert spec is not None and spec.loader is not None
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    monkeypatch.setattr(runner, "_docker_info_security_options", lambda: '["name=rootless"]')
+    assert runner._container_user() == "0:0"
+    monkeypatch.setattr(runner, "_docker_info_security_options", lambda: None)
+    assert runner._container_user() == f"{os.getuid()}:{os.getgid()}"
