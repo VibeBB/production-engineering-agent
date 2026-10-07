@@ -19,6 +19,8 @@ jobs:
   sweep:
     runs-on: ubuntu-26.04
     timeout-minutes: 15
+    # No actions/cache usage: forbid restore and save entirely.
+    cache-mode: none
     permissions:
       actions: write # gh cache delete
     steps:
