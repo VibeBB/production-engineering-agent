@@ -126,6 +126,7 @@ class Operation(FrozenModel):
     safety_hazards: list[str] = Field(default_factory=list[str])
     safety_precautions: list[str] = Field(default_factory=list[str])
     work_elements: list[WorkElement] = Field(default_factory=list[WorkElement])
+    programs: list[str] = Field(default_factory=list[str])
 
 
 class SamplingSpec(FrozenModel):
@@ -241,10 +242,16 @@ class ImportedData(FrozenModel):
 
 
 class ImportRef(FrozenModel):
-    system: Literal["circuit", "mech", "wire", "ux"]
+    system: Literal["circuit", "mech", "wire", "ux", "fpga", "firmware"]
     kind: (
         Literal[
-            "circuit-brief", "circuit-connectivity", "mech-envelope", "wire-contract", "ux-contract"
+            "circuit-brief",
+            "circuit-connectivity",
+            "mech-envelope",
+            "wire-contract",
+            "ux-contract",
+            "fpga-production",
+            "firmware-production",
         ]
         | None
     ) = None
@@ -294,6 +301,26 @@ class ProdengContract(FrozenModel):
             else set()
         )
         imports = {item.system for item in self.imports}
+        programmed = [
+            ref
+            for item in self.imports
+            if item.kind in {"fpga-production", "firmware-production"}
+            for ref in item.extracted.parts
+        ]
+        programmable = set(programmed)
+        if len(programmable) != len(programmed):
+            raise ValueError("a device is provided by more than one programming import")
+        for operation in self.operations:
+            if operation.programs and operation.kind != "programming":
+                raise ValueError(f"{operation.id} programs devices but is not programming")
+            if len(set(operation.programs)) != len(operation.programs):
+                raise ValueError(f"{operation.id} lists a device twice")
+            for ref in operation.programs:
+                if ref not in programmable:
+                    raise ValueError(
+                        f"{operation.id} programs {ref!r}, which no fpga-production "
+                        "or firmware-production import provides"
+                    )
         for characteristic in self.characteristics:
             for source in characteristic.sources:
                 if source not in requirements and not (

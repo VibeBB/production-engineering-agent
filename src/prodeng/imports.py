@@ -6,7 +6,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
-from typing import Literal, cast
+from typing import Annotated, Literal, cast
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .contract import ImportedData, ImportRef, ProdengContract
 
@@ -16,8 +18,10 @@ ImportKind = Literal[
     "mech-envelope",
     "wire-contract",
     "ux-contract",
+    "fpga-production",
+    "firmware-production",
 ]
-ImportSystem = Literal["circuit", "mech", "wire", "ux"]
+ImportSystem = Literal["circuit", "mech", "wire", "ux", "fpga", "firmware"]
 
 IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "circuit-brief": "circuit",
@@ -25,7 +29,89 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "mech-envelope": "mech",
     "wire-contract": "wire",
     "ux-contract": "ux",
+    "fpga-production": "fpga",
+    "firmware-production": "firmware",
 }
+
+_SHA256 = r"^[0-9a-f]{64}$"
+
+
+class FpgaProductionSource(BaseModel):
+    """Strict mirror of fpga-agent's ``<name>.fpga-production.json``.
+
+    ``bitstream`` and the last ``argv`` element are relative to the directory
+    holding the artifact.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1]
+    system: Literal["fpga"]
+    artifact_kind: Literal["fpga_production"]
+    design: str = Field(min_length=1)
+    contract_sha256: str = Field(pattern=_SHA256)
+    gate_report_sha256: str = Field(pattern=_SHA256)
+    device_ref: str = Field(min_length=1)
+    device_profile: str = Field(min_length=1)
+    part: str = Field(min_length=1)
+    package: str = Field(min_length=1)
+    bitstream: str = Field(min_length=1)
+    bitstream_sha256: str = Field(pattern=_SHA256)
+    bitstream_bytes: int = Field(gt=0)
+    target: Literal["sram", "flash"]
+    tool: Literal["openFPGALoader"]
+    board: str | None
+    cable: str | None
+    argv: list[str] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> FpgaProductionSource:
+        if Path(self.bitstream).is_absolute():
+            raise ValueError("bitstream must be relative to the artifact")
+        if self.board is None and self.cable is None:
+            raise ValueError("artifact names neither a board nor a cable")
+        if self.argv[0] != self.tool or self.argv[-1] != self.bitstream:
+            raise ValueError("argv must run the tool on the bitstream")
+        if ("-f" in self.argv) != (self.target == "flash"):
+            raise ValueError("argv and target disagree on flash programming")
+        return self
+
+
+class FirmwareProductionSource(BaseModel):
+    """Strict mirror of firmware-agent's ``<name>.fw-production.json``.
+
+    ``elf`` is relative to the directory holding the artifact.
+    ``ftm_spec_sha256`` is the ``factory-test-spec.json`` the image was gated
+    against, or ``None`` when the firmware has no factory test link.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1]
+    system: Literal["firmware"]
+    artifact_kind: Literal["firmware_production"]
+    design: str = Field(min_length=1)
+    contract_sha256: str = Field(pattern=_SHA256)
+    gate_report_sha256: str = Field(pattern=_SHA256)
+    mcu_ref: str = Field(min_length=1)
+    mcu_profile: str = Field(min_length=1)
+    part: str = Field(min_length=1)
+    package: str = Field(min_length=1)
+    elf: str = Field(min_length=1)
+    elf_sha256: str = Field(pattern=_SHA256)
+    elf_bytes: int = Field(gt=0)
+    ftm_spec_sha256: str | None = Field(pattern=_SHA256)
+    ftm_commands: list[Annotated[str, Field(pattern=r"^TC-[0-9]{2,4}$")]]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> FirmwareProductionSource:
+        if Path(self.elf).is_absolute():
+            raise ValueError("elf must be relative to the artifact")
+        if (self.ftm_spec_sha256 is None) != (not self.ftm_commands):
+            raise ValueError("ftm_commands are present exactly when ftm_spec_sha256 is")
+        if len(set(self.ftm_commands)) != len(self.ftm_commands):
+            raise ValueError("ftm_commands lists a command twice")
+        return self
 
 
 def _objects(payload: dict[str, object], field: str) -> list[dict[str, object]]:
@@ -83,6 +169,18 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
         product_payload = cast(dict[str, object], product)
         surfaces = product_payload.get("surfaces", [])
         return ImportedData(surfaces=_strings(_object_list(surfaces, "product.surfaces"), "id"))
+    if kind == "fpga-production":
+        try:
+            artifact = FpgaProductionSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed fpga-production artifact: {exc}") from exc
+        return ImportedData(parts=[artifact.device_ref])
+    if kind == "firmware-production":
+        try:
+            firmware = FirmwareProductionSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed firmware-production artifact: {exc}") from exc
+        return ImportedData(parts=[firmware.mcu_ref])
     raise ValueError(f"unsupported import kind {kind!r}; expected one of {tuple(IMPORT_SYSTEMS)}")
 
 

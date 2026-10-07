@@ -14,10 +14,37 @@ changes.
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
 | UX design | `ux-contract` | Product surface IDs. |
+| FPGA production programming | `fpga-production` | The FPGA device reference; the strict `FpgaProductionSource` mirror is re-validated by the gate. |
+| Firmware production image | `firmware-production` | The MCU reference; the strict `FirmwareProductionSource` mirror is re-validated by the gate. |
 
 Each import records the workspace-relative source path and SHA-256 in the
 contract. `imports.fresh` fails when a source changes and is unknown if its
-source is missing. Intake photos are materialized by the attachment hook
+source is missing.
+
+fpga-agent writes `<design>.fpga-production.json` only after a passing full
+gate run. Bind its device to the `programming` operation that loads it with
+`operations[].programs` (for example `["U1"]`). `fpga.programming` fails when
+no programming operation lists the device, when the artifact is malformed or
+changed since import, when the target is volatile `sram` instead of `flash`,
+or when the bitstream next to the artifact no longer has the gated sha256 or
+size; an unreadable artifact or bitstream is unknown. The pass detail carries
+the openFPGALoader command for the station. prodeng never programs hardware.
+
+firmware-agent writes `<name>.fw-production.json` only after a passing full
+gate run: the ELF path, sha256 and size, the MCU part/package, and — when its
+`ftm` block pins this contract's `factory-test-spec.json` — that spec's
+sha256 and command ids. Bind the MCU reference with `operations[].programs`
+as for FPGA devices; one device may come from only one programming import.
+`firmware.programming` fails when no programming operation lists the MCU,
+when the artifact is malformed or changed since import, when the ELF next to
+it no longer has the gated sha256 or size, when the contract declares a
+`factory_test_mode` but the firmware was gated without it or against a
+different `factory-test-spec.json` (the sha256 of the bytes `prodeng project`
+writes) or a different command set, and when the firmware still serves a
+spec this contract no longer declares. An unreadable artifact or ELF is
+unknown. Flashing stays a host-only, human-confirmed station step.
+
+Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
 ## Simulation predictions

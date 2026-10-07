@@ -20,7 +20,7 @@ workspace path helper.
 | `prodeng_export` | Write | `contract_path`; optional `out_dir`. | Writes projections and returns their paths. |
 | `prodeng_author` | Write | `contract_path`; optional `out_dir`; `render` boolean defaults to `true`. | Runs gates, writes projections, report, and requests; when rendering, includes required image paths and next-step guidance. |
 | `prodeng_render` | Write | `contract_path`; optional `out_dir`. | Writes PNG sheets and index and returns image paths and vision-review guidance. |
-| `prodeng_import` | Write | `contract_path`, `kind`, and `file`. Kinds: `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`, `ux-contract`. | Rewrites the contract with extracted data and SHA-256 provenance. |
+| `prodeng_import` | Write | `contract_path`, `kind`, and `file`. Kinds: `circuit-brief`, `circuit-connectivity`, `mech-envelope`, `wire-contract`, `ux-contract`, `fpga-production`, `firmware-production`. | Rewrites the contract with extracted data and SHA-256 provenance. |
 | `prodeng_requests` | Write | `contract_path`; optional `out_dir`. | Derives outbound v2 request files and returns their paths. |
 | `prodeng_liaison` | Read | `directory`. | Reconciles prodeng request/response files; reports entries, orphans, and malformed files. |
 | `prodeng_sample` | Read | `lot`, `aql`, optional level (default `II`). | Attribute sampling plan values. |
