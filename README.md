@@ -1,5 +1,7 @@
 # Production Engineering Agent
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VibeBB/production-engineering-agent)
+
 `prodeng` turns an approved product design into a traceable factory-plan
 package. It is for product, manufacturing, quality, test, and operations
 teams that need to connect product requirements to how a product will be
