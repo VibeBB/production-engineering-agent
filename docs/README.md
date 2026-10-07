@@ -48,6 +48,8 @@
   OpenHands SDK/tools, uv, and deferral decisions.
 - [SDK v1.52.0 feature evaluation](research/sdk-v1.52.0-feature-evaluation.md):
   OpenHands SDK/tools adoption decisions.
+- [SDK v1.53.0 feature evaluation](research/sdk-v1.53.0-feature-evaluation.md):
+  OpenHands SDK/tools adoption decisions.
 
 ## Architecture decisions
 
