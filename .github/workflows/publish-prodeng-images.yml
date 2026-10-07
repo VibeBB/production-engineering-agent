@@ -133,6 +133,29 @@ jobs:
           else
             echo "ref=ghcr.io/${IMAGE_OWNER}/prodeng-tools@${BUILT_DIGEST}" >> "$GITHUB_OUTPUT"
           fi
+      - name: Resolve tools digest
+        env:
+          BUILT_DIGEST: ${{ steps.tools.outputs.digest }}
+          SCAN_IMAGE_REF: ${{ steps.scan-ref.outputs.ref }}
+        run: |
+          set -euo pipefail
+          case "$BUILT_DIGEST" in sha256:*) ;; *) echo "invalid tools digest: $BUILT_DIGEST" >&2; exit 1 ;; esac
+          # The pushed digest reference on publish; the local rehearsal tag
+          # on dry_run.
+          TOOLS_TAG="${GITHUB_SHA}-tools"
+          printf 'TOOLS_REF=%s\nTOOLS_DIGEST=%s\nTOOLS_TAG=%s\n' "$SCAN_IMAGE_REF" "$BUILT_DIGEST" "$TOOLS_TAG" >> "$GITHUB_ENV"
+      # Attestation only needs the pushed digest: run it as a background
+      # step overlapping every post-build leg and join it before the
+      # summary/lock steps that read its attestation-url output.
+      - name: Attest tools image provenance
+        if: inputs.dry_run != true
+        id: attest
+        background: true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools
+          subject-digest: ${{ steps.tools.outputs.digest }}
+          push-to-registry: true
       - name: Scan tools image (Trivy SARIF)
         id: trivy-scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -151,23 +174,47 @@ jobs:
           format: sarif
           output: trivy-image.sarif
           limit-severities-for-sarif: true
-      - name: Scan tools image (Trivy JSON)
-        # Runs even when the SARIF gate above found fixable CVEs, so the
-        # full report is still emitted on a gate failure.
-        if: always() && steps.tools.outcome == 'success'
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        env:
-          TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
-        with:
-          scan-type: image
-          scan-ref: ${{ steps.scan-ref.outputs.ref }}
-          version: v0.75.0
-          scanners: vuln,secret,misconfig,license
-          ignore-unfixed: false
-          exit-code: '0'
-          format: json
-          output: trivy-image.json
-          skip-setup-trivy: true
+      # Independent post-build legs run as a parallel group; the JSON
+      # member keeps its always() condition so the full diagnostic report
+      # is still emitted when the SARIF gate above fails — exactly when
+      # it is needed. SBOM generation and measurement read TOOLS_REF,
+      # resolved above before any background step started.
+      - parallel:
+          - name: Scan tools image (Trivy JSON)
+            # Runs even when the SARIF gate above found fixable CVEs, so the
+            # full report is still emitted on a gate failure.
+            if: always() && steps.tools.outcome == 'success'
+            uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+            env:
+              TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+            with:
+              scan-type: image
+              scan-ref: ${{ steps.scan-ref.outputs.ref }}
+              version: v0.75.0
+              scanners: vuln,secret,misconfig,license
+              ignore-unfixed: false
+              exit-code: '0'
+              format: json
+              output: trivy-image.json
+              skip-setup-trivy: true
+          - name: Generate tools SPDX SBOM
+            uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+            env:
+              # Registry pulls on publish; a dry_run image exists only in the
+              # local docker daemon.
+              SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: ${{ inputs.dry_run == true && 'docker' || 'registry' }}
+              TMPDIR: ${{ runner.temp }}
+              SYFT_FILE_METADATA_SELECTION: none
+            with:
+              image: ${{ env.TOOLS_REF }}
+              format: spdx-json
+              output-file: ${{ runner.temp }}/prodeng-tools.full.spdx.json
+              upload-artifact: false
+              upload-release-assets: false
+          - name: Measure published tools
+            env:
+              TOOLS_REF: ${{ env.TOOLS_REF }}
+            run: uv run python scripts/measure_image_tools.py --image-ref "$TOOLS_REF" --out "$RUNNER_TEMP/prodeng-tools.json"
       - name: Upload Trivy SARIF
         # A rehearsal must not file code-scanning alerts.
         if: always() && inputs.dry_run != true && hashFiles('trivy-image.sarif') != ''
@@ -185,39 +232,6 @@ jobs:
       - name: Summarize tools Trivy gate findings
         if: failure() && hashFiles('trivy-image.json') != ''
         run: python3 scripts/trivy_gate_summary.py trivy-image.json >> "$GITHUB_STEP_SUMMARY"
-      - name: Attest tools image provenance
-        if: inputs.dry_run != true
-        id: attest
-        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
-        with:
-          subject-name: ghcr.io/${{ env.IMAGE_OWNER }}/prodeng-tools
-          subject-digest: ${{ steps.tools.outputs.digest }}
-          push-to-registry: true
-      - name: Resolve tools digest
-        env:
-          BUILT_DIGEST: ${{ steps.tools.outputs.digest }}
-          SCAN_IMAGE_REF: ${{ steps.scan-ref.outputs.ref }}
-        run: |
-          set -euo pipefail
-          case "$BUILT_DIGEST" in sha256:*) ;; *) echo "invalid tools digest: $BUILT_DIGEST" >&2; exit 1 ;; esac
-          # The pushed digest reference on publish; the local rehearsal tag
-          # on dry_run.
-          TOOLS_TAG="${GITHUB_SHA}-tools"
-          printf 'TOOLS_REF=%s\nTOOLS_DIGEST=%s\nTOOLS_TAG=%s\n' "$SCAN_IMAGE_REF" "$BUILT_DIGEST" "$TOOLS_TAG" >> "$GITHUB_ENV"
-      - name: Generate tools SPDX SBOM
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        env:
-          # Registry pulls on publish; a dry_run image exists only in the
-          # local docker daemon.
-          SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: ${{ inputs.dry_run == true && 'docker' || 'registry' }}
-          TMPDIR: ${{ runner.temp }}
-          SYFT_FILE_METADATA_SELECTION: none
-        with:
-          image: ${{ env.TOOLS_REF }}
-          format: spdx-json
-          output-file: ${{ runner.temp }}/prodeng-tools.full.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
       - name: Package tools SPDX SBOM
         run: |
           python3 scripts/package_level_sbom.py \
@@ -263,10 +277,6 @@ jobs:
           path: ${{ runner.temp }}/prodeng-tools.full.spdx.json
           retention-days: 90
           if-no-files-found: error
-      - name: Measure published tools
-        env:
-          TOOLS_REF: ${{ env.TOOLS_REF }}
-        run: uv run python scripts/measure_image_tools.py --image-ref "$TOOLS_REF" --out "$RUNNER_TEMP/prodeng-tools.json"
       # e2e_authoring exits non-zero unless the gate verdict is "pass"
       # (fail-closed), so the container exit code is the smoke check. The
       # image's read-only example is copied into the container's /tmp because
@@ -303,6 +313,10 @@ jobs:
             ${{ runner.temp }}/prodeng-smoke/**/prodeng-report.md
             ${{ runner.temp }}/prodeng-smoke/**/*.prodeng-request.json
           if-no-files-found: ignore
+      # Join the background attestation before promoting: its success is
+      # one of the gates that must pass before :latest moves.
+      - name: Wait for provenance attestation
+        wait: attest
       - name: Promote :latest
         # Every gate above passed: copy the verified manifest to :latest
         # server-side (attestations and the SBOM keep binding the digest).

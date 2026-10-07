@@ -32,6 +32,8 @@ jobs:
     # Covers the slow path: direct-push rejection → bump PR + dispatched
     # checks + merge wait.
     timeout-minutes: 45
+    # No actions/cache usage: forbid restore and save entirely.
+    cache-mode: none
     permissions:
       # Approves action_required runs on the version-bump branch.
       actions: write
