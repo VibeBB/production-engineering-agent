@@ -22,8 +22,8 @@ WORKDIR /app
 # procps ships `ps` so the container-audit Lynis run executes its
 # process/crypto/account checks instead of aborting 84 sub-tests.
 RUN for attempt in 1 2 3 4 5; do \
-        apt-get -o Acquire::Retries=5 update \
-        && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+        apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             ca-certificates \
             git \
             procps \
@@ -38,8 +38,8 @@ RUN for attempt in 1 2 3 4 5; do \
 # publish (CVE-2026-103111 libpcre2-8-0). Upgrade just that package inside
 # the build so the publish gate stays green.
 RUN for attempt in 1 2 3 4 5; do \
-        apt-get -o Acquire::Retries=5 update \
-        && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+        apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+        && apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             --only-upgrade \
             libpcre2-8-0 \
         && rm -rf /var/lib/apt/lists/* \
