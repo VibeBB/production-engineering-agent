@@ -11,4 +11,4 @@
   expected failure is `prodeng tools image not yet published/locked`.
 - The smart-kettle example is regenerated only with
   `python -m prodeng author` followed by `python -m prodeng requests`.
-- Plugin check targets OpenHands SDK/tools 1.52.0; uv is pinned at 0.12.22.
+- Plugin check targets OpenHands SDK/tools 1.53.0; uv is pinned at 0.12.22.
