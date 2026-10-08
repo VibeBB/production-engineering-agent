@@ -17,6 +17,7 @@ from PIL import Image
 
 from prodeng import mcp_server
 from prodeng import render as render_module
+from prodeng import report as report_module
 from prodeng.contract import ProdengContract, load_contract
 from prodeng.projections import write_projections
 from prodeng.render import MAX_HEIGHT, RED, render_sheets
@@ -203,3 +204,24 @@ def test_render_tool_returns_inline_images_and_author_can_disable_them(
     assert author_result.isError is False
     assert len(author_result.content) == 1
     assert isinstance(author_result.content[0], types.TextContent)
+
+
+def test_vision_points_list_rendered_sheets(tmp_path: Path) -> None:
+    contract = load_contract(EXAMPLE / "smart-kettle.prodeng.json")
+    render_sheets(contract, tmp_path)
+
+    points = report_module.vision_points(tmp_path)
+
+    assert {point["checklist"] for point in points} == {
+        "control-plan",
+        "pfmea",
+        "line-balance",
+        "work-instruction",
+        "factory-test-spec",
+    }
+    assert all(point["image_path"].startswith("renders/") for point in points)
+    assert all(point["record_with"] == "prodeng_record_vision_review" for point in points)
+
+
+def test_vision_points_empty_without_renders(tmp_path: Path) -> None:
+    assert report_module.vision_points(tmp_path) == []

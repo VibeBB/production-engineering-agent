@@ -332,7 +332,6 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         if name == "prodeng_author":
             gates = run_gates(contract, contract_path.parent)
             request_paths = write_requests(contract, gates, contract_path.parent, contract_path)
-            paths.update(write_report(contract, gates, out_dir, contract_path.parent))
             render_paths: dict[str, Path] = {}
             render_skipped: str | None = None
             if render_enabled:
@@ -341,6 +340,8 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
                     from .render import render_sheets
 
                     render_paths = render_sheets(contract, out_dir)
+            # Report written after renders so vision_points can list the sheets.
+            paths.update(write_report(contract, gates, out_dir, contract_path.parent))
             payload = {
                 **gates.to_dict(contract),
                 "stage": "author",

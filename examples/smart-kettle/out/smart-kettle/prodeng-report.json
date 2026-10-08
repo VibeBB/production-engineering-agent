@@ -366,5 +366,6 @@
   "schema_version": 1,
   "system": "prodeng",
   "takt_s": 72.0,
-  "verdict": "pass"
+  "verdict": "pass",
+  "vision_points": []
 }
