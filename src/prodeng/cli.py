@@ -97,7 +97,6 @@ def _cmd_author(args: argparse.Namespace) -> int:
         out_dir = _out_dir(contract_path, args.out, contract)
         paths = write_projections(contract, contract_path.stem.removesuffix(".prodeng"), out_dir)
         request_paths = write_requests(contract, report, contract_path.parent, contract_path)
-        paths.update(write_report(contract, report, out_dir, contract_path.parent))
         render_paths: dict[str, Path] = {}
         render_skipped: str | None = None
         if args.render:
@@ -106,6 +105,8 @@ def _cmd_author(args: argparse.Namespace) -> int:
                 from .render import render_sheets
 
                 render_paths = render_sheets(contract, out_dir)
+        # Report written after renders so vision_points can list the sheets.
+        paths.update(write_report(contract, report, out_dir, contract_path.parent))
     except (OSError, ValueError) as exc:
         return _error("author", exc)
     payload: dict[str, object] = {

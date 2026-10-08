@@ -3,12 +3,48 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 from .contract import ProdengContract
 from .gates import GateReport
 from .responses import liaison_status
+
+_VISION_POINT_RECORD_WITH = "prodeng_record_vision_review"
+
+# Rendered-sheet base name -> vision-review checklist slug.
+_VISION_POINT_CHECKLISTS: tuple[tuple[str, str], ...] = (
+    ("control-plan", "control-plan"),
+    ("pfmea", "pfmea"),
+    ("line-balance", "line-balance"),
+    ("work-instruction", "work-instruction"),
+    ("factory-test-spec", "factory-test-spec"),
+)
+
+
+def _vision_point_checklist(stem: str) -> str:
+    base = re.sub(r"-p\d+$", "", stem)
+    for prefix, checklist in _VISION_POINT_CHECKLISTS:
+        if base == prefix or base.startswith(f"{prefix}-"):
+            return checklist
+    return "sheet"
+
+
+def vision_points(out_dir: Path) -> list[dict[str, str]]:
+    """Rendered sheets a vision reviewer must look at, with their checklist."""
+    render_dir = out_dir / "renders"
+    if not render_dir.is_dir():
+        return []
+    return [
+        {
+            "image_path": image.relative_to(out_dir).as_posix(),
+            "checklist": _vision_point_checklist(image.stem),
+            "record_with": _VISION_POINT_RECORD_WITH,
+        }
+        for image in sorted(render_dir.glob("*.png"))
+        if image.is_file()
+    ]
 
 
 def build_report(
@@ -53,6 +89,7 @@ def build_report(
             "gate_checks": by_gate_status,
         },
         "takt_s": contract.volume.takt_s,
+        "vision_points": vision_points(out_dir),
     }
 
 
@@ -92,6 +129,12 @@ def render_markdown(report: dict[str, Any]) -> str:
             f"Orphans: {len(liaison['orphans'])}; malformed files: {len(liaison['malformed'])}.",
         ]
     )
+    vision = report["vision_points"]
+    if vision:
+        lines.extend(["", "## Vision points (advisory)", ""])
+        lines.extend(
+            f"- `{point['image_path']}` — checklist `{point['checklist']}`" for point in vision
+        )
     return "\n".join(lines)
 
 
