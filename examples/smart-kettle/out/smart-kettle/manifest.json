@@ -1,6 +1,7 @@
 {
   "artifact_stem": "smart-kettle",
   "files": [
+    "boundary-vectors.json",
     "control-plan.csv",
     "factory-test-spec.json",
     "factory-test-spec.md",
