@@ -16,6 +16,7 @@ ImportKind = Literal[
     "circuit-brief",
     "circuit-connectivity",
     "mech-envelope",
+    "mech-appearance",
     "wire-contract",
     "ux-contract",
     "fpga-production",
@@ -27,6 +28,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "circuit-brief": "circuit",
     "circuit-connectivity": "circuit",
     "mech-envelope": "mech",
+    "mech-appearance": "mech",
     "wire-contract": "wire",
     "ux-contract": "ux",
     "fpga-production": "fpga",
@@ -34,6 +36,91 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
 }
 
 _SHA256 = r"^[0-9a-f]{64}$"
+
+
+_DELTA_DEFECTS = frozenset({"color_deviation", "gloss_deviation"})
+
+
+class AppearanceViewing(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    distance_mm: float = Field(gt=0)
+    illuminance_lux: float = Field(gt=0)
+    time_s: float = Field(gt=0)
+    angle_deg: float = Field(ge=0, le=90)
+    source: str = Field(min_length=1)
+
+
+class AppearanceDefect(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    defect: str = Field(pattern=r"^[a-z_]+$")
+    max_size_mm: float | None = Field(ge=0)
+    max_count: int = Field(ge=0)
+    max_delta: float | None = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _bounded(self) -> AppearanceDefect:
+        delta = self.defect in _DELTA_DEFECTS
+        if (self.max_delta is not None) != delta or (self.max_size_mm is not None) == delta:
+            raise ValueError(f"{self.defect} has the wrong bound")
+        return self
+
+    def bound(self) -> str:
+        if self.max_delta is not None:
+            return f"delta <= {self.max_delta:g}, count <= {self.max_count}"
+        return f"size <= {self.max_size_mm:g} mm, count <= {self.max_count}"
+
+
+class AppearanceSurface(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    face: str = Field(min_length=1)
+    cosmetic_class: Literal["A", "B", "C"]
+    defects: list[AppearanceDefect]
+
+
+class AppearanceSample(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(pattern=r"^LS[0-9]+$")
+    face: str = Field(min_length=1)
+    defect: str = Field(min_length=1)
+    side: Literal["accept", "reject"]
+    description: str = Field(min_length=1)
+
+
+class MechAppearanceSource(BaseModel):
+    """Strict mirror of mechanical-agent's ``<name>.mech-appearance.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1]
+    system: Literal["mech"]
+    artifact_kind: Literal["mech_appearance"]
+    design: str = Field(min_length=1)
+    brief_sha256: str = Field(pattern=_SHA256)
+    material: str = Field(min_length=1)
+    process: str = Field(min_length=1)
+    viewing: AppearanceViewing
+    surfaces: list[AppearanceSurface] = Field(min_length=1)
+    samples: list[AppearanceSample]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> MechAppearanceSource:
+        faces = [surface.face for surface in self.surfaces]
+        if len(set(faces)) != len(faces):
+            raise ValueError("appearance faces repeat")
+        ids = [sample.id for sample in self.samples]
+        if len(set(ids)) != len(ids):
+            raise ValueError("limit sample ids repeat")
+        declared = {
+            (surface.face, limit.defect) for surface in self.surfaces for limit in surface.defects
+        }
+        for sample in self.samples:
+            if (sample.face, sample.defect) not in declared:
+                raise ValueError(f"limit sample {sample.id} has no declared defect limit")
+        return self
 
 
 class FpgaProductionSource(BaseModel):
@@ -157,6 +244,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
         )
     if kind == "mech-envelope":
         return ImportedData(anchors=_strings(_objects(payload, "anchors"), "name"))
+    if kind == "mech-appearance":
+        try:
+            appearance = MechAppearanceSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed mech-appearance artifact: {exc}") from exc
+        return ImportedData(limit_samples=[sample.id for sample in appearance.samples])
     if kind == "wire-contract":
         return ImportedData(
             parts=_strings(_objects(payload, "wires"), "id"),

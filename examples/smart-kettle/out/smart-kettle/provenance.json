@@ -1,5 +1,5 @@
 {
-  "contract_sha256": "81244307468ced4f198958730ba8dbcf1d5d6cb6daff7d057a80906b450a00e5",
+  "contract_sha256": "3f6ada064b1453292be2e0be24751ff9c9196b418c430e27b7694336fac55f01",
   "imports": [
     {
       "extracted": {
@@ -7,6 +7,7 @@
         "connectors": [
           "J1"
         ],
+        "limit_samples": [],
         "nets": [
           "FTM_STRAP",
           "GND",

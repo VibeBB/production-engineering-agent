@@ -12,6 +12,7 @@ changes.
 | Circuit design | `circuit-brief` | Part references, net names, and connector references. |
 | Circuit connectivity | `circuit-connectivity` | Net references and connector references used by test-access checks. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
+| Mechanical appearance | `mech-appearance` | Limit sample IDs; the strict `MechAppearanceSource` mirror is re-validated by the gate. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
 | UX design | `ux-contract` | Product surface IDs. |
 | FPGA production programming | `fpga-production` | The FPGA device reference; the strict `FpgaProductionSource` mirror is re-validated by the gate. |
@@ -29,6 +30,19 @@ changed since import, when the target is volatile `sram` instead of `flash`,
 or when the bitstream next to the artifact no longer has the gated sha256 or
 size; an unreadable artifact or bitstream is unknown. The pass detail carries
 the openFPGALoader command for the station. prodeng never programs hardware.
+
+mechanical-agent writes `<name>.mech-appearance.json` from its brief's
+`appearance` block: the viewing condition (distance, illuminance, time,
+angle, source), each face's cosmetic class A/B/C with defect limits, and
+the limit samples — one `accept` (worst part still shipped) and one `reject`
+(mildest part refused) per class A/B defect limit. List both sample IDs in a
+`visual` inspection's `limit_samples`. `appearance.limit_samples` emits one
+check per class A/B face defect and fails when no visual inspection holds
+the pair, when the holding inspection's characteristic is `variable`, or
+when the artifact is malformed or changed since import; an unreadable
+artifact is unknown. The pass detail carries the inspections, the defect
+bound, and the viewing condition. Class C limits without samples need no
+inspection. prodeng owns the physical samples; mech owns their criteria.
 
 firmware-agent writes `<name>.fw-production.json` only after a passing full
 gate run: the ELF path, sha256 and size, the MCU part/package, and — when its

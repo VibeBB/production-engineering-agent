@@ -13,10 +13,10 @@ Its top-level fields are:
 | `requirements` | Requirement, assumption, and question records with IDs, text, kind, and open/resolved status. |
 | `characteristics` | Product characteristics with classification, variable/attribute kind, measurement limits or acceptance criterion, unit, sources, and an optional `simulation` prediction (`report_path`, `sha256`, `check_id` of a simulation-agent `sim-report.json` check; variable characteristics only). |
 | `operations` | Ordered process operations with station, cycle time, operators, tools/fixtures, safety data, TWI work elements, and `programs` (device references from `fpga-production` or `firmware-production` imports, only on `programming` operations; each device from exactly one import). |
-| `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references. |
+| `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references, and `limit_samples` (IDs from a `mech-appearance` import; `visual` inspections only, unique). |
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
 | `factory_test_mode` | Optional entry conditions, field lockout, interface/nets, commands/timeouts, provisioning, exit, and duration budget. |
-| `imports` | Supported sibling source kind (including `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces. |
+| `imports` | Supported sibling source kind (including `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
 
 Model validators enforce ID prefixes, references, mutually consistent
 limits, required characteristic inputs, valid AQL/levels, and FTM

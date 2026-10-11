@@ -128,6 +128,7 @@ def _write_inspection_plan(contract: ProdengContract, out_dir: Path) -> None:
                 "equipment": inspection.equipment,
                 "reaction_plan": inspection.reaction_plan,
                 "ftm_commands": sorted(inspection.ftm_commands),
+                "limit_samples": sorted(inspection.limit_samples),
                 "sampling": _sample_record(contract, inspection),
             }
             for inspection in inspections
@@ -261,8 +262,13 @@ def _write_work_instructions(contract: ProdengContract, path: Path) -> None:
     ]
     inspection_by_operation: dict[str, list[str]] = {}
     for inspection in contract.inspections:
+        samples = (
+            f"; limit samples {', '.join(sorted(inspection.limit_samples))}"
+            if inspection.limit_samples
+            else ""
+        )
         inspection_by_operation.setdefault(inspection.operation, []).append(
-            f"{inspection.id} ({inspection.method}, {inspection.characteristic})"
+            f"{inspection.id} ({inspection.method}, {inspection.characteristic}{samples})"
         )
     for operation in sorted(contract.operations, key=lambda item: item.id):
         linked_inspections = sorted(inspection_by_operation.get(operation.id, []))

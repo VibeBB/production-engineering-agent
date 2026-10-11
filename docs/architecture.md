@@ -43,6 +43,7 @@ produces fail; with no failures, any unknown produces unknown.
 | `work_instruction.steps` | Operation | At least one work element exists and each has a key point. |
 | `work_instruction.safety` | Operation | Hazards have precautions; hipot/ground-bond operation declares hazards. |
 | `imports.fresh` | Import | Source exists and SHA-256 matches; a mismatch fails, and a missing source is unknown. |
+| `appearance.limit_samples` | `<design>:<face>:<defect>` | A `visual` inspection on an `attribute` characteristic holds the accept and reject limit samples of every class A/B defect limit in the current `mech-appearance` artifact; unreadable artifact is unknown, changed or malformed is fail. |
 | `firmware.programming` | MCU | A `programming` operation lists the MCU in `programs`, the ELF still has the gated SHA-256 and size, and the firmware was gated against the current `factory-test-spec.json` and its command ids (or neither side declares a factory test mode); an unreadable artifact or ELF is unknown. |
 | `fpga.programming` | FPGA device | A `programming` operation lists the device in `programs`, the target is `flash`, and the bitstream still has the gated SHA-256 and size; an unreadable artifact or bitstream is unknown. |
 | `sim.prediction` | Simulation | A characteristic's pinned simulation-agent report check passes and predicts a value inside `[lsl, usl]`; a changed report or a simulation fail fails, and a missing report, check, or numeric prediction is unknown. |
