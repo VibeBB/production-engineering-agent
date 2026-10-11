@@ -168,6 +168,7 @@ class Inspection(FrozenModel):
     equipment: str = Field(min_length=1)
     reaction_plan: str = Field(min_length=1)
     ftm_commands: list[str] = Field(default_factory=list[str])
+    limit_samples: list[str] = Field(default_factory=list[str])
 
 
 class FailureMode(FrozenModel):
@@ -239,6 +240,7 @@ class ImportedData(FrozenModel):
     connectors: list[str] = Field(default_factory=list[str])
     anchors: list[str] = Field(default_factory=list[str])
     surfaces: list[str] = Field(default_factory=list[str])
+    limit_samples: list[str] = Field(default_factory=list[str])
 
 
 class ImportRef(FrozenModel):
@@ -248,6 +250,7 @@ class ImportRef(FrozenModel):
             "circuit-brief",
             "circuit-connectivity",
             "mech-envelope",
+            "mech-appearance",
             "wire-contract",
             "ux-contract",
             "fpga-production",
@@ -310,6 +313,17 @@ class ProdengContract(FrozenModel):
         programmable = set(programmed)
         if len(programmable) != len(programmed):
             raise ValueError("a device is provided by more than one programming import")
+        provided = [
+            sample
+            for item in self.imports
+            if item.kind == "mech-appearance"
+            for sample in item.extracted.limit_samples
+        ]
+        samples = set(provided)
+        if len(samples) != len(provided):
+            raise ValueError(
+                "a limit sample id is provided by more than one mech-appearance import"
+            )
         for operation in self.operations:
             if operation.programs and operation.kind != "programming":
                 raise ValueError(f"{operation.id} programs devices but is not programming")
@@ -339,6 +353,16 @@ class ProdengContract(FrozenModel):
             for command_id in inspection.ftm_commands:
                 if command_id not in commands:
                     raise ValueError(f"{inspection.id} references unknown FTM command {command_id}")
+            if inspection.limit_samples and inspection.method != "visual":
+                raise ValueError(f"{inspection.id} holds limit samples but is not visual")
+            if len(set(inspection.limit_samples)) != len(inspection.limit_samples):
+                raise ValueError(f"{inspection.id} lists a limit sample twice")
+            for sample in inspection.limit_samples:
+                if sample not in samples:
+                    raise ValueError(
+                        f"{inspection.id} holds limit sample {sample!r}, which no "
+                        "mech-appearance import provides"
+                    )
         for failure_mode in self.failure_modes:
             if failure_mode.operation not in operations:
                 raise ValueError(

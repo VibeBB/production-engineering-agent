@@ -1,0 +1,97 @@
+{
+  "artifact_kind": "mech_appearance",
+  "brief_sha256": "778fc4cc262d7f21be9060a265af3741ba822cf2af6b0c70d697a55060f55f61",
+  "design": "smart-kettle-shell",
+  "material": "ABS",
+  "process": "fdm",
+  "samples": [
+    {
+      "defect": "scratch",
+      "description": "0.3 mm",
+      "face": "top",
+      "id": "LS1",
+      "side": "accept"
+    },
+    {
+      "defect": "scratch",
+      "description": "0.4 mm",
+      "face": "top",
+      "id": "LS2",
+      "side": "reject"
+    },
+    {
+      "defect": "color_deviation",
+      "description": "dE 1.5",
+      "face": "top",
+      "id": "LS3",
+      "side": "accept"
+    },
+    {
+      "defect": "color_deviation",
+      "description": "dE 2.0",
+      "face": "top",
+      "id": "LS4",
+      "side": "reject"
+    },
+    {
+      "defect": "layer_line",
+      "description": "0.15 mm",
+      "face": "front",
+      "id": "LS9",
+      "side": "reject"
+    },
+    {
+      "defect": "layer_line",
+      "description": "0.1 mm",
+      "face": "front",
+      "id": "LS10",
+      "side": "accept"
+    }
+  ],
+  "schema_version": 1,
+  "surfaces": [
+    {
+      "cosmetic_class": "C",
+      "defects": [],
+      "face": "bottom"
+    },
+    {
+      "cosmetic_class": "B",
+      "defects": [
+        {
+          "defect": "layer_line",
+          "max_count": 3,
+          "max_delta": null,
+          "max_size_mm": 0.1
+        }
+      ],
+      "face": "front"
+    },
+    {
+      "cosmetic_class": "A",
+      "defects": [
+        {
+          "defect": "color_deviation",
+          "max_count": 0,
+          "max_delta": 1.5,
+          "max_size_mm": null
+        },
+        {
+          "defect": "scratch",
+          "max_count": 1,
+          "max_delta": null,
+          "max_size_mm": 0.3
+        }
+      ],
+      "face": "top"
+    }
+  ],
+  "system": "mech",
+  "viewing": {
+    "angle_deg": 45.0,
+    "distance_mm": 450.0,
+    "illuminance_lux": 1000.0,
+    "source": "customer cosmetic spec CS-12 rev B",
+    "time_s": 10.0
+  }
+}

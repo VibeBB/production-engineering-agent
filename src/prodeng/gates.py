@@ -12,7 +12,7 @@ from typing import Literal, cast
 from pydantic import ValidationError
 
 from .contract import Characteristic, ImportRef, Inspection, ProdengContract
-from .imports import FirmwareProductionSource, FpgaProductionSource
+from .imports import FirmwareProductionSource, FpgaProductionSource, MechAppearanceSource
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
 
@@ -364,6 +364,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.append(_fpga_programming_check(contract, imported, contract_dir))
         if imported.kind == "firmware-production":
             checks.append(_firmware_programming_check(contract, imported, contract_dir))
+        if imported.kind == "mech-appearance":
+            checks.extend(_appearance_checks(contract, imported, contract_dir))
 
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
@@ -495,6 +497,110 @@ def _ftm_problem(contract: ProdengContract, artifact: FirmwareProductionSource) 
     if artifact.ftm_commands != expected:
         return f"firmware serves {artifact.ftm_commands}, the spec declares {expected}"
     return None
+
+
+def _appearance_checks(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> list[GateCheck]:
+    """Every class A/B defect limit is judged by a visual inspection holding its sample pair."""
+    gate = "appearance.limit_samples"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return [_check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")]
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return [_check(gate, imported.path, "fail", detail="artifact changed since import")]
+    try:
+        artifact = MechAppearanceSource.model_validate_json(raw)
+    except ValidationError as exc:
+        return [_check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")]
+    viewing = artifact.viewing
+    condition = (
+        f"{viewing.distance_mm:g} mm, {viewing.illuminance_lux:g} lx, {viewing.time_s:g} s, "
+        f"{viewing.angle_deg:g} deg ({viewing.source})"
+    )
+    characteristics = {item.id: item for item in contract.characteristics}
+    checks: list[GateCheck] = []
+    for surface in sorted(artifact.surfaces, key=lambda item: item.face):
+        for limit in sorted(surface.defects, key=lambda item: item.defect):
+            subject = f"{artifact.design}:{surface.face}:{limit.defect}"
+            sides = {
+                sample.side: sample.id
+                for sample in artifact.samples
+                if sample.face == surface.face and sample.defect == limit.defect
+            }
+            pair = sorted(
+                sample.side
+                for sample in artifact.samples
+                if sample.face == surface.face and sample.defect == limit.defect
+            )
+            if surface.cosmetic_class == "C" and not pair:
+                continue
+            if pair != ["accept", "reject"]:
+                checks.append(
+                    _check(
+                        gate,
+                        subject,
+                        "fail",
+                        detail=f"class {surface.cosmetic_class} limit lacks an accept/reject "
+                        f"sample pair (has {pair or 'none'})",
+                    )
+                )
+                continue
+            needed = {sides["accept"], sides["reject"]}
+            holders = sorted(
+                (
+                    inspection
+                    for inspection in contract.inspections
+                    if needed <= set(inspection.limit_samples)
+                ),
+                key=lambda item: item.id,
+            )
+            label = f"{sides['accept']} (accept) / {sides['reject']} (reject)"
+            if not holders:
+                checks.append(
+                    _check(
+                        gate,
+                        subject,
+                        "fail",
+                        detail=f"no visual inspection holds {label}",
+                    )
+                )
+                continue
+            variable = [
+                item.id
+                for item in holders
+                if characteristics[item.characteristic].kind != "attribute"
+            ]
+            if variable:
+                checks.append(
+                    _check(
+                        gate,
+                        subject,
+                        "fail",
+                        detail=f"{', '.join(variable)} judge a limit sample on a variable "
+                        "characteristic; limit samples need an attribute characteristic",
+                    )
+                )
+                continue
+            checks.append(
+                _check(
+                    gate,
+                    subject,
+                    "pass",
+                    measured=", ".join(item.id for item in holders),
+                    limit=limit.bound(),
+                    detail=f"class {surface.cosmetic_class}; {label}; viewing {condition}",
+                )
+            )
+    if not checks:
+        checks.append(
+            _check(gate, imported.path, "pass", detail="class C only; no limit samples required")
+        )
+    return checks
 
 
 def _firmware_programming_check(
