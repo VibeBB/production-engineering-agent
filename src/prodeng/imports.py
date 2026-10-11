@@ -16,6 +16,7 @@ ImportKind = Literal[
     "circuit-brief",
     "circuit-connectivity",
     "circuit-assembly",
+    "circuit-handling",
     "mech-envelope",
     "mech-appearance",
     "wire-contract",
@@ -31,6 +32,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "circuit-brief": "circuit",
     "circuit-connectivity": "circuit",
     "circuit-assembly": "circuit",
+    "circuit-handling": "circuit",
     "mech-envelope": "mech",
     "mech-appearance": "mech",
     "wire-contract": "wire",
@@ -217,6 +219,39 @@ class CircuitAssemblySource(BaseModel):
         return [item for item in self.placements if not item.dnp]
 
 
+class HandledPartMirror(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    ref: str = Field(min_length=1)
+    msl: Literal["1", "2", "2a", "3", "4", "5", "5a", "6"]
+    peak_reflow_c: float = Field(gt=0)
+    esd_sensitive: bool
+    source: str = Field(min_length=1)
+
+
+class CircuitHandlingSource(BaseModel):
+    """Strict mirror of circuit-agent's ``<name>.circuit-handling.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_kind: Literal["circuit_handling"]
+    schema_version: Literal[1]
+    design: str
+    brief_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    parts: list[HandledPartMirror]
+    unknown: list[str]
+    verdict: Literal["pass", "unknown"]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> CircuitHandlingSource:
+        if (self.verdict == "pass") == bool(self.unknown):
+            raise ValueError("verdict and unknown disagree")
+        refs = [item.ref for item in self.parts]
+        if len(set(refs)) != len(refs):
+            raise ValueError("part references repeat")
+        return self
+
+
 class CrimpConditionMirror(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -392,6 +427,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
         except ValidationError as exc:
             raise ValueError(f"malformed circuit-assembly artifact: {exc}") from exc
         return ImportedData(parts=sorted({item.ref for item in board.populated()}))
+    if kind == "circuit-handling":
+        try:
+            handling = CircuitHandlingSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed circuit-handling artifact: {exc}") from exc
+        return ImportedData(parts=[item.ref for item in handling.parts])
     if kind == "mech-envelope":
         return ImportedData(anchors=_strings(_objects(payload, "anchors"), "name"))
     if kind == "mech-appearance":
