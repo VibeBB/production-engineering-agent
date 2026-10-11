@@ -46,6 +46,9 @@ produces fail; with no failures, any unknown produces unknown.
 | `appearance.limit_samples` | `<design>:<face>:<defect>` | A `visual` inspection on an `attribute` characteristic holds the accept and reject limit samples of every class A/B defect limit in the current `mech-appearance` artifact; unreadable artifact is unknown, changed or malformed is fail. |
 | `firmware.programming` | MCU | A `programming` operation lists the MCU in `programs`, the ELF still has the gated SHA-256 and size, and the firmware was gated against the current `factory-test-spec.json` and its command ids (or neither side declares a factory test mode); an unreadable artifact or ELF is unknown. |
 | `fpga.programming` | FPGA device | A `programming` operation lists the device in `programs`, the target is `flash`, and the bitstream still has the gated SHA-256 and size; an unreadable artifact or bitstream is unknown. |
+| `msa.resolution` | MSA | A declared inspection `gauge` resolves at least a tenth of the characteristic tolerance (`usl - lsl`); one-sided tolerances are unknown and a gauge on an attribute characteristic fails. |
+| `msa.grr` | MSA | A declared gauge %GRR is at most 10 % for critical and 30 % for major/minor characteristics (AIAG MSA). |
+| `capability.cpk_target` | Capability | A declared `cpk_min` is at least 1.67 for critical and 1.33 for major/minor characteristics (AIAG PPAP). Measured Cpk is outside VibeBB; this pins the target the control plan holds the process to. |
 | `sim.prediction` | Simulation | A characteristic's pinned simulation-agent report check passes and predicts a value inside `[lsl, usl]`; a changed report or a simulation fail fails, and a missing report, check, or numeric prediction is unknown. |
 | `requirements.open_questions` | Open question | Open `Q` requirement is unknown. |
 
