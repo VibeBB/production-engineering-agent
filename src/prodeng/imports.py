@@ -20,6 +20,7 @@ ImportKind = Literal[
     "mech-appearance",
     "wire-contract",
     "wire-crimp",
+    "wire-formboard",
     "ux-contract",
     "fpga-production",
     "firmware-production",
@@ -34,6 +35,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "mech-appearance": "mech",
     "wire-contract": "wire",
     "wire-crimp": "wire",
+    "wire-formboard": "wire",
     "ux-contract": "ux",
     "fpga-production": "fpga",
     "firmware-production": "firmware",
@@ -252,6 +254,60 @@ class WireCrimpSource(BaseModel):
         return self
 
 
+class FormboardSegmentMirror(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(min_length=1)
+    start_mm: float = Field(ge=0)
+    end_mm: float = Field(gt=0)
+    min_bend_radius_mm: float | None = Field(default=None, gt=0)
+
+
+class FormboardWireMirror(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(min_length=1)
+    net: str = Field(min_length=1)
+    cut_length_mm: float = Field(gt=0)
+    slack_mm: float
+
+
+class FormboardRouteMirror(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(min_length=1)
+    length_mm: float = Field(gt=0)
+    protection: str = Field(min_length=1)
+    anchors: list[str]
+    segments: list[FormboardSegmentMirror] = Field(min_length=1)
+    wires: list[FormboardWireMirror]
+
+
+class WireFormboardSource(BaseModel):
+    """Strict mirror of wire-agent's ``<contract_id>.wire-formboard.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_kind: Literal["wire_formboard"]
+    schema_version: Literal[1]
+    contract_id: str = Field(min_length=1)
+    contract_sha256: str = Field(pattern=_SHA256)
+    routes: list[FormboardRouteMirror]
+    unrouted: list[str]
+    short: list[str]
+    unknown: list[str]
+    verdict: Literal["pass", "fail"]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> WireFormboardSource:
+        if (self.verdict == "pass") == bool(self.unknown or self.short):
+            raise ValueError("verdict disagrees with short and unknown")
+        negative = sorted(w.id for r in self.routes for w in r.wires if w.slack_mm < 0)
+        if negative != sorted(self.short):
+            raise ValueError("short does not list exactly the wires with negative slack")
+        return self
+
+
 class FirmwareProductionSource(BaseModel):
     """Strict mirror of firmware-agent's ``<name>.fw-production.json``.
 
@@ -349,6 +405,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
             WireCrimpSource.model_validate(payload)
         except ValidationError as exc:
             raise ValueError(f"malformed wire-crimp artifact: {exc}") from exc
+        return ImportedData()
+    if kind == "wire-formboard":
+        try:
+            WireFormboardSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed wire-formboard artifact: {exc}") from exc
         return ImportedData()
     if kind == "wire-contract":
         return ImportedData(

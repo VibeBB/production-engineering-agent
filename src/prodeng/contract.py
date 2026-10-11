@@ -273,6 +273,7 @@ class ImportRef(FrozenModel):
             "mech-appearance",
             "wire-contract",
             "wire-crimp",
+            "wire-formboard",
             "ux-contract",
             "fpga-production",
             "firmware-production",
