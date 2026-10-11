@@ -21,6 +21,7 @@ from .imports import (
     MechAppearanceSource,
     WireCrimpSource,
     WireFormboardSource,
+    mech_envelope_mm,
 )
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
@@ -383,6 +384,9 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.extend(_crimp_checks(contract, imported, contract_dir))
         if imported.kind == "wire-formboard":
             checks.append(_formboard_check(contract, imported, contract_dir))
+
+    if contract.packaging is not None:
+        checks.extend(_packaging_checks(contract, contract_dir))
 
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
@@ -808,6 +812,98 @@ def _formboard_check(
     return _check(
         gate, board.contract_id, "pass", longest, "mm", f"{routes} on {', '.join(holders)}"
     )
+
+
+STANDARD_GRAVITY = 9.80665
+
+
+def _packaging_fit(contract: ProdengContract, contract_dir: Path) -> GateCheck:
+    """The packed block of units plus cushion fits the carton on every axis."""
+    gate = "packaging.fit"
+    packaging = contract.packaging
+    assert packaging is not None
+    subject = contract.product.name
+    briefs = [item for item in contract.imports if item.kind == "mech-brief"]
+    if not briefs:
+        return _check(gate, subject, "unknown", detail="no mech-brief import gives the envelope")
+    if len(briefs) > 1:
+        paths = ", ".join(sorted(item.path for item in briefs))
+        return _check(gate, subject, "fail", detail=f"ambiguous product envelope: {paths}")
+    imported = briefs[0]
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return _check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return _check(gate, imported.path, "fail", detail="artifact changed since import")
+    try:
+        document: object = json.loads(raw)
+        payload = cast(dict[str, object], document) if isinstance(document, dict) else {}
+        envelope = mech_envelope_mm(payload)
+    except (ValueError, UnicodeDecodeError) as exc:
+        return _check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")
+    slack: list[float] = []
+    evidence: list[str] = []
+    for axis, size, count, inner in zip(
+        "xyz", envelope, packaging.arrangement, packaging.carton_inner_mm, strict=True
+    ):
+        need = round(count * size + 2 * packaging.cushion_mm, 6)
+        slack.append(round(inner - need, 6))
+        evidence.append(
+            f"{axis}: {count} x {size:g} + 2 x {packaging.cushion_mm:g} = {need:g} <= {inner:g}"
+        )
+    worst = min(slack)
+    return _check(
+        gate, subject, "pass" if worst >= 0 else "fail", worst, "slack mm >= 0", "; ".join(evidence)
+    )
+
+
+def _packaging_checks(contract: ProdengContract, contract_dir: Path) -> list[GateCheck]:
+    packaging = contract.packaging
+    assert packaging is not None
+    subject = contract.product.name
+    gross = packaging.gross_kg
+    checks = [
+        _packaging_fit(contract, contract_dir),
+        _check(
+            "packaging.mass",
+            subject,
+            "pass" if gross <= packaging.max_gross_kg else "fail",
+            gross,
+            packaging.max_gross_kg,
+            f"{packaging.units} x {packaging.unit_mass_kg:g} kg"
+            f" + {packaging.packaging_mass_kg:g} kg packaging; limit from {packaging.source}",
+        ),
+    ]
+    pallet = packaging.pallet
+    if pallet is not None:
+        load = round((pallet.layers - 1) * gross * STANDARD_GRAVITY * pallet.safety_factor, 6)
+        checks.append(
+            _check(
+                "packaging.stack",
+                subject,
+                "pass" if load <= pallet.box_compression_n else "fail",
+                load,
+                pallet.box_compression_n,
+                f"{pallet.layers - 1} cartons of {gross:g} kg above the bottom one x safety "
+                f"{pallet.safety_factor:g}; BCT from {pallet.source}",
+            )
+        )
+    packers = sorted(op.id for op in contract.operations if op.kind == "packing")
+    checks.append(
+        _check(
+            "packaging.operation",
+            subject,
+            "pass" if packers else "fail",
+            len(packers),
+            ">= 1 packing operation",
+            ", ".join(packers) or "no operation packs the carton",
+        )
+    )
+    return checks
 
 
 def _ftm_problem(contract: ProdengContract, artifact: FirmwareProductionSource) -> str | None:

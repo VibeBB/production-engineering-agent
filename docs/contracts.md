@@ -16,7 +16,8 @@ Its top-level fields are:
 | `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references, and `limit_samples` (IDs from a `mech-appearance` import; `visual` inspections only, unique). |
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
 | `factory_test_mode` | Optional entry conditions, field lockout, interface/nets, commands/timeouts, provisioning, exit, and duration budget. |
-| `imports` | Supported sibling source kind (including `circuit-assembly`, `circuit-handling`, `wire-crimp`, `wire-formboard`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
+| `packaging` | Optional shipping carton: `carton_inner_mm` and `arrangement` (units along x/y/z, product upright), `cushion_mm`, `unit_mass_kg`, `packaging_mass_kg`, `max_gross_kg` with a cited `source`, and optional `pallet` (`layers`, carton `box_compression_n`, `safety_factor` ≥ 1, `source`). The product envelope comes from a `mech-brief` import. |
+| `imports` | Supported sibling source kind (including `mech-brief`, `circuit-assembly`, `circuit-handling`, `wire-crimp`, `wire-formboard`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
 
 Model validators enforce ID prefixes, references, mutually consistent
 limits, required characteristic inputs, valid AQL/levels, and FTM

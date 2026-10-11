@@ -284,6 +284,7 @@ class ImportRef(FrozenModel):
             "circuit-connectivity",
             "circuit-assembly",
             "circuit-handling",
+            "mech-brief",
             "mech-envelope",
             "mech-appearance",
             "wire-contract",
@@ -300,6 +301,50 @@ class ImportRef(FrozenModel):
     extracted: ImportedData = Field(default_factory=ImportedData)
 
 
+class Pallet(FrozenModel):
+    """Carton stacking on a pallet; ``box_compression_n`` is the carton BCT from its supplier."""
+
+    layers: int = Field(ge=1)
+    box_compression_n: float = Field(gt=0)
+    safety_factor: float = Field(ge=1)
+    source: str = Field(min_length=1)
+
+
+class Packaging(FrozenModel):
+    """Shipping carton for the product envelope imported from a mech brief.
+
+    ``arrangement`` counts units along the carton x/y/z axes with the product
+    upright (mech width on x, depth on y, height on z); ``cushion_mm`` is the
+    clearance kept on every side of the packed block.
+    """
+
+    carton_inner_mm: tuple[float, float, float]
+    arrangement: tuple[int, int, int]
+    cushion_mm: float = Field(ge=0)
+    unit_mass_kg: float = Field(gt=0)
+    packaging_mass_kg: float = Field(ge=0)
+    max_gross_kg: float = Field(gt=0)
+    source: str = Field(min_length=1)
+    pallet: Pallet | None = None
+
+    @model_validator(mode="after")
+    def _positive(self) -> Packaging:
+        if min(self.carton_inner_mm) <= 0:
+            raise ValueError("carton_inner_mm must be > 0 on every axis")
+        if min(self.arrangement) < 1:
+            raise ValueError("arrangement needs at least one unit per axis")
+        return self
+
+    @property
+    def units(self) -> int:
+        x, y, z = self.arrangement
+        return x * y * z
+
+    @property
+    def gross_kg(self) -> float:
+        return round(self.units * self.unit_mass_kg + self.packaging_mass_kg, 9)
+
+
 class ProdengContract(FrozenModel):
     schema_version: Literal[1]
     system: Literal["prodeng"]
@@ -311,6 +356,7 @@ class ProdengContract(FrozenModel):
     inspections: list[Inspection] = Field(default_factory=list[Inspection])
     failure_modes: list[FailureMode] = Field(default_factory=list[FailureMode])
     factory_test_mode: FactoryTestMode | None = None
+    packaging: Packaging | None = None
     imports: list[ImportRef] = Field(default_factory=list[ImportRef])
 
     @model_validator(mode="after")
