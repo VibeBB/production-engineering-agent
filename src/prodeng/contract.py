@@ -127,6 +127,7 @@ class Operation(FrozenModel):
     safety_precautions: list[str] = Field(default_factory=list[str])
     work_elements: list[WorkElement] = Field(default_factory=list[WorkElement])
     programs: list[str] = Field(default_factory=list[str])
+    sides: list[Literal["top", "bottom"]] = Field(default_factory=list[Literal["top", "bottom"]])
 
 
 class SamplingSpec(FrozenModel):
@@ -249,6 +250,7 @@ class ImportRef(FrozenModel):
         Literal[
             "circuit-brief",
             "circuit-connectivity",
+            "circuit-assembly",
             "mech-envelope",
             "mech-appearance",
             "wire-contract",
@@ -327,6 +329,10 @@ class ProdengContract(FrozenModel):
         for operation in self.operations:
             if operation.programs and operation.kind != "programming":
                 raise ValueError(f"{operation.id} programs devices but is not programming")
+            if operation.sides and operation.kind not in {"smt", "tht", "selective_solder"}:
+                raise ValueError(f"{operation.id} assembles a board side but is not smt/tht")
+            if len(set(operation.sides)) != len(operation.sides):
+                raise ValueError(f"{operation.id} lists a board side twice")
             if len(set(operation.programs)) != len(operation.programs):
                 raise ValueError(f"{operation.id} lists a device twice")
             for ref in operation.programs:

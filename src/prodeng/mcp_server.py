@@ -104,6 +104,7 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
                 "enum": [
                     "circuit-brief",
                     "circuit-connectivity",
+                    "circuit-assembly",
                     "mech-envelope",
                     "mech-appearance",
                     "wire-contract",

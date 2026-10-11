@@ -1,0 +1,68 @@
+{
+  "artifact_kind": "circuit_assembly",
+  "schema_version": 1,
+  "frame": "board_center_y_up_mm",
+  "pcb": {
+    "path": "smart-kettle.kicad_pcb",
+    "sha256": "35d752e8be6246b4311a913bb932047e9ea0cb169245306aac93b13958b777a7"
+  },
+  "placements": [
+    {
+      "ref": "C1",
+      "lib_id": "Capacitor_SMD:C_0603_1608Metric",
+      "value": "C1-value",
+      "side": "top",
+      "mount": "smd",
+      "dnp": false,
+      "x_mm": -10.0,
+      "y_mm": 15.0,
+      "rotation_deg": 90.0
+    },
+    {
+      "ref": "J1",
+      "lib_id": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+      "value": "J1-value",
+      "side": "top",
+      "mount": "tht",
+      "dnp": false,
+      "x_mm": 25.0,
+      "y_mm": 15.0,
+      "rotation_deg": 90.0
+    },
+    {
+      "ref": "R1",
+      "lib_id": "Resistor_SMD:R_0603_1608Metric",
+      "value": "R1-value",
+      "side": "top",
+      "mount": "smd",
+      "dnp": false,
+      "x_mm": -8.0,
+      "y_mm": 15.0,
+      "rotation_deg": 90.0
+    },
+    {
+      "ref": "R2",
+      "lib_id": "Resistor_SMD:R_0603_1608Metric",
+      "value": "R2-value",
+      "side": "top",
+      "mount": "smd",
+      "dnp": true,
+      "x_mm": -6.0,
+      "y_mm": 15.0,
+      "rotation_deg": 90.0
+    },
+    {
+      "ref": "U1",
+      "lib_id": "Package_DIP:DIP-28_W7.62mm",
+      "value": "U1-value",
+      "side": "top",
+      "mount": "tht",
+      "dnp": false,
+      "x_mm": 0.0,
+      "y_mm": 15.0,
+      "rotation_deg": 90.0
+    }
+  ],
+  "unknown": [],
+  "verdict": "pass"
+}
