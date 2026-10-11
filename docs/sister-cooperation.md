@@ -87,6 +87,16 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
+## UX out-of-box packaging handoff
+
+UX-creator lists the box contents in its contract `oobe.in_box`, top first
+in the order the user needs them during the out-of-box experience.
+Import the UX contract (`ux-contract`, sha256-pinned) and declare where
+each item sits in the carton under `packaging.contents`. `packaging.oobe`
+re-reads the pinned UX contract and fails when an item is not packed, an
+unlisted item is packed, a packing step is not a `packing` operation, or
+an item UX needs earlier sits in a lower layer than a later one.
+
 ## Mechanical packaging handoff
 
 Import mechanical-agent's design brief (`<name>.brief.json`) as

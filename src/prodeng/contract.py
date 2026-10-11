@@ -310,6 +310,14 @@ class Pallet(FrozenModel):
     source: str = Field(min_length=1)
 
 
+class PackedItem(FrozenModel):
+    """One UX ``oobe.in_box`` item in the carton; layer 1 is the top, opened first."""
+
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*$")
+    layer: int = Field(ge=1)
+    operation: str = Field(pattern=r"^OP[0-9]{2,4}$")
+
+
 class Packaging(FrozenModel):
     """Shipping carton for the product envelope imported from a mech brief.
 
@@ -326,6 +334,7 @@ class Packaging(FrozenModel):
     max_gross_kg: float = Field(gt=0)
     source: str = Field(min_length=1)
     pallet: Pallet | None = None
+    contents: list[PackedItem] | None = None
 
     @model_validator(mode="after")
     def _positive(self) -> Packaging:
@@ -333,6 +342,10 @@ class Packaging(FrozenModel):
             raise ValueError("carton_inner_mm must be > 0 on every axis")
         if min(self.arrangement) < 1:
             raise ValueError("arrangement needs at least one unit per axis")
+        if self.contents is not None and len({item.id for item in self.contents}) != len(
+            self.contents
+        ):
+            raise ValueError("packaging contents ids must be unique")
         return self
 
     @property

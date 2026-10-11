@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- `packaging.oobe` gate and `packaging.contents[]`: the carton packs the
+  pinned UX contract's `oobe.in_box` items once each, by a packing
+  operation, top layer first in UX unboxing order.
+
 ### Changed
 
 - Port VRP v2 from wire-agent: hash-chained logs, grounded structured

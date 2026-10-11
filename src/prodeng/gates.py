@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from dataclasses import asdict, dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Literal, cast
 
@@ -861,6 +862,80 @@ def _packaging_fit(contract: ProdengContract, contract_dir: Path) -> GateCheck:
     )
 
 
+def _ux_in_box(contract: ProdengContract, contract_dir: Path) -> list[str] | GateCheck:
+    """In-box item ids, in UX unboxing order, from the single pinned ux-contract import."""
+    gate = "packaging.oobe"
+    uxs = [item for item in contract.imports if item.kind == "ux-contract"]
+    if not uxs:
+        return _check(gate, contract.product.name, "unknown", detail="no ux-contract import")
+    if len(uxs) > 1:
+        paths = ", ".join(sorted(item.path for item in uxs))
+        return _check(gate, contract.product.name, "fail", detail=f"ambiguous UX contract: {paths}")
+    imported = uxs[0]
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return _check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return _check(gate, imported.path, "fail", detail="artifact changed since import")
+    try:
+        document: object = json.loads(raw)
+    except (ValueError, UnicodeDecodeError) as exc:
+        return _check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")
+    oobe = cast(dict[str, object], document).get("oobe") if isinstance(document, dict) else None
+    items = cast(dict[str, object], oobe).get("in_box") if isinstance(oobe, dict) else None
+    if not items:
+        return _check(gate, imported.path, "unknown", detail="UX contract declares no oobe.in_box")
+    if not isinstance(items, list):
+        return _check(gate, imported.path, "fail", detail="malformed oobe.in_box")
+    ids: list[str] = []
+    for item in cast(list[object], items):
+        item_id = cast(dict[str, object], item).get("id") if isinstance(item, dict) else None
+        if not isinstance(item_id, str) or not item_id or item_id in ids:
+            return _check(gate, imported.path, "fail", detail="malformed oobe.in_box")
+        ids.append(item_id)
+    return ids
+
+
+def _packaging_oobe(contract: ProdengContract, contract_dir: Path) -> GateCheck:
+    """Every UX in-box item is packed once, by a packing operation, in unboxing order."""
+    packaging = contract.packaging
+    assert packaging is not None
+    ux_ids = _ux_in_box(contract, contract_dir)
+    if isinstance(ux_ids, GateCheck):
+        return ux_ids
+    if packaging.contents is None:
+        return _check(
+            "packaging.oobe", contract.product.name, "fail", detail="packaging.contents missing"
+        )
+    packed = {item.id: item for item in packaging.contents}
+    packers = {op.id for op in contract.operations if op.kind == "packing"}
+    problems = [f"{item_id} not packed" for item_id in ux_ids if item_id not in packed]
+    problems += [f"{item_id} not in the UX box" for item_id in sorted(set(packed) - set(ux_ids))]
+    problems += [
+        f"{item.id}: {item.operation} is not a packing operation"
+        for item in packaging.contents
+        if item.operation not in packers
+    ]
+    order = [packed[item_id] for item_id in ux_ids if item_id in packed]
+    problems += [
+        f"{later.id} (layer {later.layer}) above {earlier.id} (layer {earlier.layer})"
+        for earlier, later in pairwise(order)
+        if later.layer < earlier.layer
+    ]
+    return _check(
+        "packaging.oobe",
+        contract.product.name,
+        "fail" if problems else "pass",
+        len(problems),
+        0,
+        "; ".join(problems) or f"{len(ux_ids)} items packed in unboxing order",
+    )
+
+
 def _packaging_checks(contract: ProdengContract, contract_dir: Path) -> list[GateCheck]:
     packaging = contract.packaging
     assert packaging is not None
@@ -903,6 +978,10 @@ def _packaging_checks(contract: ProdengContract, contract_dir: Path) -> list[Gat
             ", ".join(packers) or "no operation packs the carton",
         )
     )
+    if packaging.contents is not None or any(
+        item.kind == "ux-contract" for item in contract.imports
+    ):
+        checks.append(_packaging_oobe(contract, contract_dir))
     return checks
 
 
