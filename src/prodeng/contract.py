@@ -146,6 +146,8 @@ class Operation(FrozenModel):
     work_elements: list[WorkElement] = Field(default_factory=list[WorkElement])
     programs: list[str] = Field(default_factory=list[str])
     sides: list[Literal["top", "bottom"]] = Field(default_factory=list[Literal["top", "bottom"]])
+    reflow_peak_c: float | None = Field(default=None, gt=0)
+    floor_life_control: bool = False
 
 
 class SamplingSpec(FrozenModel):
@@ -269,6 +271,7 @@ class ImportRef(FrozenModel):
             "circuit-brief",
             "circuit-connectivity",
             "circuit-assembly",
+            "circuit-handling",
             "mech-envelope",
             "mech-appearance",
             "wire-contract",

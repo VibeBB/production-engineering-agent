@@ -1,0 +1,24 @@
+{
+  "artifact_kind": "circuit_handling",
+  "schema_version": 1,
+  "design": "smart_kettle_control_board",
+  "brief_sha256": "e97d75b90393ae1281b3f349485b53dfc08cd3e04b405a926474e413aec1f3d1",
+  "parts": [
+    {
+      "ref": "J1",
+      "msl": "1",
+      "peak_reflow_c": 260.0,
+      "esd_sensitive": false,
+      "source": "JST XH datasheet, recommended soldering conditions"
+    },
+    {
+      "ref": "U1",
+      "msl": "3",
+      "peak_reflow_c": 260.0,
+      "esd_sensitive": true,
+      "source": "ESP32-C3-WROOM-02 datasheet, section 7.3 and ESD ratings"
+    }
+  ],
+  "unknown": [],
+  "verdict": "pass"
+}

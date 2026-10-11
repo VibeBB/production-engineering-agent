@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from .contract import CRIMP_UNITS, Characteristic, ImportRef, Inspection, ProdengContract
 from .imports import (
     CircuitAssemblySource,
+    CircuitHandlingSource,
     CrimpConditionMirror,
     FirmwareProductionSource,
     FpgaProductionSource,
@@ -376,6 +377,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.extend(_appearance_checks(contract, imported, contract_dir))
         if imported.kind == "circuit-assembly":
             checks.extend(_assembly_checks(contract, imported, contract_dir))
+        if imported.kind == "circuit-handling":
+            checks.extend(_handling_checks(contract, imported, contract_dir))
         if imported.kind == "wire-crimp":
             checks.extend(_crimp_checks(contract, imported, contract_dir))
         if imported.kind == "wire-formboard":
@@ -564,6 +567,96 @@ def _assembly_checks(
                 f"{', '.join(operations)} places {', '.join(sorted(refs))}"
                 if operations
                 else f"no operation places {', '.join(sorted(refs))}",
+            )
+        )
+    return checks
+
+
+_BOARD_OPERATIONS = ("smt", "tht", "selective_solder")
+
+
+def _handling_checks(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> list[GateCheck]:
+    """ESD control, reflow peak and MSL floor-life control cover the circuit part facts."""
+    gate = "circuit.handling"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return [_check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")]
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return [_check(gate, imported.path, "fail", detail="artifact changed since import")]
+    try:
+        handling = CircuitHandlingSource.model_validate_json(raw)
+    except ValidationError as exc:
+        return [_check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")]
+    if handling.verdict != "pass":
+        return [
+            _check(
+                gate,
+                imported.path,
+                "unknown",
+                detail=f"circuit parts lack handling facts: {', '.join(handling.unknown)}",
+            )
+        ]
+    if not handling.parts:
+        return [_check(gate, imported.path, "unknown", detail="no handled parts")]
+    board_ops = [op for op in contract.operations if op.kind in _BOARD_OPERATIONS]
+    smt_ops = [op for op in board_ops if op.kind == "smt"]
+    checks: list[GateCheck] = []
+    esd = sorted(item.ref for item in handling.parts if item.esd_sensitive)
+    if esd:
+        open_ops = sorted(op.id for op in board_ops if not op.esd_sensitive)
+        checks.append(
+            _check(
+                gate,
+                "esd",
+                "fail" if open_ops or not board_ops else "pass",
+                len(open_ops),
+                0,
+                f"{', '.join(open_ops)} handle {', '.join(esd)} without ESD control"
+                if open_ops
+                else "no board operation handles the ESD-sensitive parts"
+                if not board_ops
+                else f"ESD control covers {', '.join(esd)}",
+            )
+        )
+    # Every part on the board rides through each reflow pass, so the coolest
+    # part rating bounds every smt operation.
+    coolest = min(handling.parts, key=lambda item: (item.peak_reflow_c, item.ref))
+    for op in smt_ops:
+        peak = op.reflow_peak_c
+        checks.append(
+            _check(
+                gate,
+                f"reflow:{op.id}",
+                "unknown" if peak is None else "pass" if peak <= coolest.peak_reflow_c else "fail",
+                peak,
+                coolest.peak_reflow_c,
+                f"{op.id} states no reflow_peak_c"
+                if peak is None
+                else f"{coolest.ref} is rated {coolest.peak_reflow_c:g} °C",
+            )
+        )
+    sensitive = sorted(item.ref for item in handling.parts if item.msl != "1")
+    if sensitive:
+        uncontrolled = sorted(op.id for op in smt_ops if not op.floor_life_control)
+        checks.append(
+            _check(
+                gate,
+                "msl",
+                "fail" if uncontrolled or not smt_ops else "pass",
+                len(uncontrolled),
+                0,
+                f"{', '.join(uncontrolled)} reflow {', '.join(sensitive)} without "
+                "floor_life_control"
+                if uncontrolled
+                else "no smt operation reflows the moisture-sensitive parts"
+                if not smt_ops
+                else f"floor-life control covers {', '.join(sensitive)}",
             )
         )
     return checks
