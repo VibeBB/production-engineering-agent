@@ -362,6 +362,9 @@ class Packaging(FrozenModel):
         return round(self.units * self.unit_mass_kg + self.packaging_mass_kg, 9)
 
 
+EbomSource = Literal["circuit-brief", "mech-brief", "wire-contract"]
+
+
 class ProdengContract(FrozenModel):
     schema_version: Literal[1]
     system: Literal["prodeng"]
@@ -375,9 +378,12 @@ class ProdengContract(FrozenModel):
     factory_test_mode: FactoryTestMode | None = None
     packaging: Packaging | None = None
     imports: list[ImportRef] = Field(default_factory=list[ImportRef])
+    ebom_sources: list[EbomSource] = Field(default_factory=list[EbomSource])
 
     @model_validator(mode="after")
     def validate_references(self) -> ProdengContract:
+        if len(set(self.ebom_sources)) != len(self.ebom_sources):
+            raise ValueError("duplicate ebom_sources")
         collections: tuple[tuple[str, list[str]], ...] = (
             ("requirements", [item.id for item in self.requirements]),
             ("characteristics", [item.id for item in self.characteristics]),

@@ -88,6 +88,18 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
+## Integrated product EBOM
+
+Set `ebom_sources` to the disciplines that make one product unit (for
+example `["circuit-brief", "mech-brief", "wire-contract"]`). `ebom.complete`
+re-reads each declared import: a source that is not imported or unreadable
+is `unknown`; one imported twice, changed since import or not readable as a
+BOM (for example a wire on an undeclared wire type) fails. `export` writes
+`out/<product>/ebom.json`, one unit's lines per system with their reference
+designators, connector ids or wire ids and the source SHA-256 pins. Circuit
+parts carry no manufacturer part number yet, so circuit lines are keyed by
+library symbol, footprint and value.
+
 ## UX out-of-box packaging handoff
 
 UX-creator lists the box contents in its contract `oobe.in_box`, top first

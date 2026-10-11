@@ -31,6 +31,7 @@ or request files.
 | `failure_modes` | IDs `FM-##`; link an operation and inspection controls; state mode, effect, cause, and integer 1–10 severity/occurrence/detection ratings. A severity of 9 or 10 requires at least one full-inspection control. |
 | `factory_test_mode` | Optional object with entry method (`gpio_strap`, `uart_magic`, `button_combo`, `test_pad`, `jtag_swd`, or `other`), detail/conditions, field lockout (`otp_fuse`, `nvm_flag`, `signed_token`, `physical_removal`, or `none`), interface, fixed commands, provisioning, exit, and positive maximum duration. Require at least two independent entry conditions. Each command has a unique `TC-##`, request/response pattern, positive timeout, measured nets/characteristics, and destructive flag. |
 | `imports` | System is `circuit`, `mech`, `wire`, `ux`, or `fpga`. Record kind, source path, lowercase SHA-256 digest, and normalized extracted nets/parts/connectors/anchors/surfaces. Paths are resolved relative to the contract file for freshness checks. |
+| `ebom_sources` | Optional. List the imported kinds that make one unit (`circuit-brief`, `mech-brief`, `wire-contract`); `ebom.complete` then needs each imported once and unchanged, and `export` writes `ebom.json`. |
 
 ## Load-time relationships
 

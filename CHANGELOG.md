@@ -4,6 +4,10 @@
 
 ### Added
 
+- `ebom_sources`, `ebom.complete` gate and `ebom.json` export: one product
+  unit's engineering BOM merged from the hash-pinned circuit brief, mech
+  brief and wire contract; a missing source is `unknown`, a changed or
+  malformed one fails.
 - `wire.continuity` gate, `wire-continuity` import kind and
   `Characteristic.continuity`: the hash-pinned wire continuity table must be
   held by a 100% continuity/isolation inspection on a harness or test

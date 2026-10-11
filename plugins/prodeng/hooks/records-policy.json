@@ -9,6 +9,7 @@
     "**/inspection-plan.json",
     "**/sampling-plans.json",
     "**/boundary-vectors.json",
+    "**/ebom.json",
     "**/line-balance.csv",
     "**/pfmea.csv",
     "**/work-instructions.md",
