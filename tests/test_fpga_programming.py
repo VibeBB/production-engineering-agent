@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from prodeng._envelope import sidecar_path, write_envelope
 from prodeng.contract import ProdengContract, load_contract
 from prodeng.gates import GateCheck, run_gates
 from prodeng.imports import FpgaProductionSource, extract_import, import_source
@@ -38,6 +39,7 @@ def _workspace(tmp_path: Path, artifact: dict[str, Any]) -> tuple[Path, Path]:
     (tmp_path / "fpga" / "build" / "blinky.bit").write_bytes(BITSTREAM)
     path = reports / "blinky.fpga-production.json"
     path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    write_envelope(path, "fpga", [], tmp_path)
     return tmp_path / "smart-kettle" / "smart-kettle.prodeng.json", path
 
 
@@ -155,3 +157,23 @@ def test_programs_must_reference_an_imported_device(tmp_path: Path) -> None:
     assert data["operations"][0]["kind"] != "programming"
     with pytest.raises(ValidationError, match="not programming"):
         ProdengContract.model_validate(data)
+
+
+def _provenance(contract: ProdengContract, contract_dir: Path) -> GateCheck:
+    report = run_gates(contract, contract_dir)
+    return next(check for check in report.checks if check.id == "imports.provenance")
+
+
+def test_import_provenance_missing_is_unknown_and_wrong_producer_fails(
+    tmp_path: Path,
+) -> None:
+    contract, contract_dir, artifact_path = _imported(tmp_path, _artifact())
+    assert _provenance(contract, contract_dir).status == "pass"
+    sidecar = sidecar_path(artifact_path)
+    body = json.loads(sidecar.read_text(encoding="utf-8"))
+    sidecar.write_text(json.dumps(body | {"producer": "firmware"}), encoding="utf-8")
+    check = _provenance(contract, contract_dir)
+    assert check.status == "fail" and "producer is 'firmware'" in check.detail
+    sidecar.unlink()
+    check = _provenance(contract, contract_dir)
+    assert check.status == "unknown" and run_gates(contract, contract_dir).verdict == "unknown"

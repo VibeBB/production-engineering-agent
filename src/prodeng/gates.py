@@ -12,6 +12,7 @@ from typing import Literal, cast
 
 from pydantic import ValidationError
 
+from ._envelope import check_envelope
 from .contract import CRIMP_UNITS, Characteristic, ImportRef, Inspection, ProdengContract
 from .ebom import product_ebom
 from .imports import (
@@ -28,6 +29,7 @@ from .imports import (
 )
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
+from .workspace import workspace_root
 
 Verdict = Literal["pass", "fail", "unknown"]
 GateStatus = Verdict
@@ -373,6 +375,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
 
     for imported in sorted(contract.imports, key=lambda item: (item.system, item.path)):
         checks.append(_freshness_check(imported, contract_dir))
+        if imported.kind in DERIVED_IMPORT_KINDS:
+            checks.append(_provenance_check(imported, contract_dir))
         if imported.kind == "fpga-production":
             checks.append(_fpga_programming_check(contract, imported, contract_dir))
         if imported.kind == "firmware-production":
@@ -419,6 +423,32 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             )
         )
     return checks
+
+
+DERIVED_IMPORT_KINDS = frozenset(
+    {
+        "circuit-connectivity",
+        "circuit-assembly",
+        "circuit-handling",
+        "mech-envelope",
+        "mech-appearance",
+        "wire-crimp",
+        "wire-formboard",
+        "wire-continuity",
+        "fpga-production",
+        "firmware-production",
+    }
+)
+"""Import kinds a sister generates; authored briefs/contracts carry no envelope."""
+
+
+def _provenance_check(imported: ImportRef, contract_dir: Path) -> GateCheck:
+    """Interchange envelope v3 sidecar beside a generated sister import."""
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    status, detail = check_envelope(path, imported.system, workspace_root(), imported.sha256)
+    return _check("imports.provenance", imported.path, status, detail=detail)
 
 
 def _freshness_check(imported: ImportRef, contract_dir: Path) -> GateCheck:

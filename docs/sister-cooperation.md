@@ -88,6 +88,26 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
+## Interchange envelope v3
+
+Generated sister imports (`circuit-connectivity`, `circuit-assembly`,
+`circuit-handling`, `mech-envelope`, `mech-appearance`, `wire-crimp`,
+`wire-formboard`, `wire-continuity`, `fpga-production`,
+`firmware-production`) also get an `imports.provenance` check on the
+`<artifact>.provenance.json` sidecar beside them. It fails when the sidecar
+is malformed, names a producer other than the import `system`, describes
+other bytes than the pinned sha256, lists a source that changed, or cites a
+decision missing from the producer's intact VRP log. A missing sidecar or
+an unreadable source is unknown. Authored inputs (`circuit-brief`,
+`mech-brief`, `wire-contract`, `ux-contract`) carry no envelope.
+
+`prodeng export` and `prodeng author` write the same sidecar beside
+`factory-test-spec.json` (read by firmware, circuit and dashboard) and
+`ebom.json`: `producer: prodeng`, the contract path and sha256 as
+`sources`, and `decision_refs` (prodeng decisions citing the contract at
+that sha256). A broken `observations/prodeng/decisions.jsonl` chain refuses
+the export and removes the sidecars.
+
 ## Integrated product EBOM
 
 Set `ebom_sources` to the disciplines that make one product unit (for

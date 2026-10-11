@@ -9,6 +9,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from prodeng._envelope import write_envelope
 from prodeng.contract import ProdengContract, load_contract
 from prodeng.gates import GateCheck, run_gates
 from prodeng.imports import FirmwareProductionSource, extract_import, import_source
@@ -35,6 +36,7 @@ def _workspace(tmp_path: Path, artifact: dict[str, Any]) -> tuple[Path, Path]:
     (tmp_path / "firmware" / "fw" / "build" / "smart-kettle.elf").write_bytes(ELF)
     path = reports / "smart-kettle.fw-production.json"
     path.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    write_envelope(path, "firmware", [], tmp_path)
     return tmp_path / "smart-kettle" / "smart-kettle.prodeng.json", path
 
 
