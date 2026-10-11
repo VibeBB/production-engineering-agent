@@ -384,6 +384,7 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
             checks.append(_sim_prediction_check(characteristic, contract_dir))
+    checks.extend(_msa_checks(contract))
 
     for question in sorted(
         (
@@ -966,6 +967,81 @@ def _sim_prediction_check(characteristic: Characteristic, contract_dir: Path) ->
     if low is not None and high is not None and high > low:
         detail += f" ({headroom / (high - low):.0%} of tolerance)"
     return result("pass", detail, measured)
+
+
+GRR_PCT_MAX = {"critical": 10.0, "major": 30.0, "minor": 30.0}
+CPK_MIN = {"critical": 1.67, "major": 1.33, "minor": 1.33}
+RESOLUTION_RATIO = 10
+
+
+def _msa_checks(contract: ProdengContract) -> list[GateCheck]:
+    """AIAG MSA/PPAP planning limits on declared gauges and capability targets."""
+    characteristics = {item.id: item for item in contract.characteristics}
+    checks: list[GateCheck] = []
+    for inspection in sorted(contract.inspections, key=lambda item: item.id):
+        gauge = inspection.gauge
+        characteristic = characteristics.get(inspection.characteristic)
+        if gauge is None or characteristic is None:
+            continue
+        if characteristic.kind != "variable":
+            checks.append(
+                _check(
+                    "msa.resolution",
+                    inspection.id,
+                    "fail",
+                    detail=f"gauge declared for attribute characteristic {characteristic.id}",
+                )
+            )
+            continue
+        if characteristic.lsl is None or characteristic.usl is None:
+            checks.append(
+                _check(
+                    "msa.resolution",
+                    inspection.id,
+                    "unknown",
+                    gauge.resolution,
+                    _window(characteristic),
+                    "the 10:1 rule needs a two-sided tolerance",
+                )
+            )
+        else:
+            limit = round((characteristic.usl - characteristic.lsl) / RESOLUTION_RATIO, 12)
+            checks.append(
+                _check(
+                    "msa.resolution",
+                    inspection.id,
+                    "pass" if gauge.resolution <= limit else "fail",
+                    gauge.resolution,
+                    f"<= {limit:g} {characteristic.unit} (tolerance/10)",
+                    f"{characteristic.id} gauge per {gauge.source}",
+                )
+            )
+        grr_limit = GRR_PCT_MAX[characteristic.classification]
+        checks.append(
+            _check(
+                "msa.grr",
+                inspection.id,
+                "pass" if gauge.grr_pct_max <= grr_limit else "fail",
+                gauge.grr_pct_max,
+                f"<= {grr_limit:g} % for {characteristic.classification}",
+                f"{characteristic.id} %GRR per {gauge.source}",
+            )
+        )
+    for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
+        if characteristic.cpk_min is None:
+            continue
+        cpk_limit = CPK_MIN[characteristic.classification]
+        checks.append(
+            _check(
+                "capability.cpk_target",
+                characteristic.id,
+                "pass" if characteristic.cpk_min >= cpk_limit else "fail",
+                characteristic.cpk_min,
+                f">= {cpk_limit:g} for {characteristic.classification}",
+                "capability target the control plan holds the process to",
+            )
+        )
+    return checks
 
 
 def run_gates(contract: ProdengContract, contract_dir: Path | str = ".") -> GateReport:

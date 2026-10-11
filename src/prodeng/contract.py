@@ -86,9 +86,12 @@ class Characteristic(FrozenModel):
     sources: list[str] = Field(min_length=1)
     simulation: SimPrediction | None = None
     crimp: CrimpBinding | None = None
+    cpk_min: float | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def validate_type_requirements(self) -> Characteristic:
+        if self.cpk_min is not None and self.kind != "variable":
+            raise ValueError(f"{self.id} cpk_min requires a variable characteristic")
         if self.simulation is not None and self.kind != "variable":
             raise ValueError(f"{self.id} simulation prediction requires a variable characteristic")
         if self.crimp is not None and (
@@ -165,6 +168,14 @@ class SamplingSpec(FrozenModel):
         return self
 
 
+class Gauge(FrozenModel):
+    """Measurement system facts from the gauge datasheet or its GR&R study."""
+
+    resolution: float = Field(gt=0)
+    grr_pct_max: float = Field(gt=0, le=100)
+    source: str = Field(min_length=1)
+
+
 class Inspection(FrozenModel):
     id: str = Field(pattern=r"^IN-[0-9]{2,4}$")
     characteristic: str = Field(pattern=r"^CH-[0-9]{2,4}$")
@@ -185,6 +196,7 @@ class Inspection(FrozenModel):
     ]
     sampling: SamplingSpec
     equipment: str = Field(min_length=1)
+    gauge: Gauge | None = None
     reaction_plan: str = Field(min_length=1)
     ftm_commands: list[str] = Field(default_factory=list[str])
     limit_samples: list[str] = Field(default_factory=list[str])
