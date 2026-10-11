@@ -4,6 +4,10 @@
 
 ### Added
 
+- `wire.continuity` gate, `wire-continuity` import kind and
+  `Characteristic.continuity`: the hash-pinned wire continuity table must be
+  held by a 100% continuity/isolation inspection on a harness or test
+  operation; an incomplete table is `unknown`.
 - `packaging.oobe` gate and `packaging.contents[]`: the carton packs the
   pinned UX contract's `oobe.in_box` items once each, by a packing
   operation, top layer first in UX unboxing order.

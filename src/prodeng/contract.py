@@ -86,6 +86,7 @@ class Characteristic(FrozenModel):
     sources: list[str] = Field(min_length=1)
     simulation: SimPrediction | None = None
     crimp: CrimpBinding | None = None
+    continuity: bool = False
     cpk_min: float | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
@@ -94,6 +95,8 @@ class Characteristic(FrozenModel):
             raise ValueError(f"{self.id} cpk_min requires a variable characteristic")
         if self.simulation is not None and self.kind != "variable":
             raise ValueError(f"{self.id} simulation prediction requires a variable characteristic")
+        if self.continuity and self.kind != "attribute":
+            raise ValueError(f"{self.id} continuity requires an attribute characteristic")
         if self.crimp is not None and (
             self.kind != "variable" or self.unit != CRIMP_UNITS[self.crimp.quantity]
         ):
@@ -290,6 +293,7 @@ class ImportRef(FrozenModel):
             "wire-contract",
             "wire-crimp",
             "wire-formboard",
+            "wire-continuity",
             "ux-contract",
             "fpga-production",
             "firmware-production",

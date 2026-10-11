@@ -14,6 +14,7 @@ changes.
 | Circuit assembly | `circuit-assembly` | Populated (non-DNP) part references; the strict `CircuitAssemblySource` mirror is re-validated by the gate. |
 | Circuit part handling | `circuit-handling` | Handled part references; the strict `CircuitHandlingSource` mirror is re-validated by the gate. |
 | Wire crimp table | `wire-crimp` | No extracted lists; the strict `WireCrimpSource` mirror is re-validated by the gate. |
+| Wire continuity table | `wire-continuity` | No extracted lists; the strict `WireContinuitySource` mirror is re-validated by the gate. |
 | Wire formboard | `wire-formboard` | No extracted lists; the strict `WireFormboardSource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
 | Mechanical brief | `mech-brief` | No extracted lists; the enclosure `width_mm`/`depth_mm`/`height_mm` are re-read by `packaging.fit`. |
@@ -107,6 +108,19 @@ brief and fails when it changed, is malformed, or the packed block
 axis; `packaging.mass` and `packaging.stack` check gross mass and pallet
 compression against cited limits. Transport drop or vibration testing
 (ISTA) and shipping labels stay outside the contract.
+
+## Wire continuity handoff
+
+wire-agent writes `<contract_id>.wire-continuity.json` (`python -m wire
+continuity`): every connector cavity a wire ends in is a test point, and
+points joined by wires or splices form one conductor group. Mark an
+attribute characteristic `continuity: true` and inspect it with `full`
+sampling on a `harness` or `test` operation: the tester reads continuity
+inside each group and isolation between groups. `wire.continuity` fails
+when the artifact changed since import, is malformed, or no such
+inspection exists; it is `unknown` when the file is missing or wire marked
+the table incomplete (a group mixing nets or with fewer than two points).
+A pass reports the test-point count and the holding inspections.
 
 ## Wire crimp handoff
 
