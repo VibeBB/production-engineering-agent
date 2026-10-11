@@ -16,7 +16,7 @@ Its top-level fields are:
 | `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references, and `limit_samples` (IDs from a `mech-appearance` import; `visual` inspections only, unique). |
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
 | `factory_test_mode` | Optional entry conditions, field lockout, interface/nets, commands/timeouts, provisioning, exit, and duration budget. |
-| `imports` | Supported sibling source kind (including `circuit-assembly`, `wire-crimp`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
+| `imports` | Supported sibling source kind (including `circuit-assembly`, `wire-crimp`, `wire-formboard`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
 
 Model validators enforce ID prefixes, references, mutually consistent
 limits, required characteristic inputs, valid AQL/levels, and FTM

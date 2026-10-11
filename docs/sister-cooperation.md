@@ -13,6 +13,7 @@ changes.
 | Circuit connectivity | `circuit-connectivity` | Net references and connector references used by test-access checks. |
 | Circuit assembly | `circuit-assembly` | Populated (non-DNP) part references; the strict `CircuitAssemblySource` mirror is re-validated by the gate. |
 | Wire crimp table | `wire-crimp` | No extracted lists; the strict `WireCrimpSource` mirror is re-validated by the gate. |
+| Wire formboard | `wire-formboard` | No extracted lists; the strict `WireFormboardSource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
 | Mechanical appearance | `mech-appearance` | Limit sample IDs; the strict `MechAppearanceSource` mirror is re-validated by the gate. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
@@ -75,6 +76,14 @@ Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
 
 ## Wire crimp handoff
+
+wire-agent writes `<contract_id>.wire-formboard.json` (`python -m wire
+formboard`): every route flattened 1:1 with segment stations and the wires
+laid on it. `wire.formboard` fails when the artifact changed since import,
+is malformed, lists wires shorter than their route, or no `harness`
+operation lists the fixture `formboard:<contract_id>`; it is `unknown` when
+the file is missing or wire declared no route. A pass reports the longest
+route in mm (the board length) and the holding operations.
 
 wire-agent writes `<contract_id>.wire-crimp.json` (`python -m wire crimp`):
 each crimp condition (terminal, wire gauge, crimp height and tolerance,

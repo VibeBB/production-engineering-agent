@@ -1,0 +1,74 @@
+{
+  "artifact_kind": "wire_formboard",
+  "contract_id": "WH-0001",
+  "contract_sha256": "1e85580f5fa85844d041ae40106dc11e1d32ca0c117e8f853eb5b851b9779dea",
+  "routes": [
+    {
+      "anchors": [],
+      "id": "RT1",
+      "length_mm": 500.0,
+      "protection": "tube",
+      "segments": [
+        {
+          "end_mm": 300.0,
+          "id": "S1",
+          "min_bend_radius_mm": 15.0,
+          "start_mm": 0.0
+        },
+        {
+          "end_mm": 500.0,
+          "id": "S2",
+          "min_bend_radius_mm": 12.0,
+          "start_mm": 300.0
+        }
+      ],
+      "wires": [
+        {
+          "cut_length_mm": 500.0,
+          "id": "W1",
+          "net": "N1",
+          "slack_mm": 0.0
+        },
+        {
+          "cut_length_mm": 500.0,
+          "id": "W2",
+          "net": "N2",
+          "slack_mm": 0.0
+        }
+      ]
+    },
+    {
+      "anchors": [],
+      "id": "RT2",
+      "length_mm": 550.0,
+      "protection": "tape",
+      "segments": [
+        {
+          "end_mm": 350.0,
+          "id": "S1",
+          "min_bend_radius_mm": 10.0,
+          "start_mm": 0.0
+        },
+        {
+          "end_mm": 550.0,
+          "id": "S2",
+          "min_bend_radius_mm": 10.0,
+          "start_mm": 350.0
+        }
+      ],
+      "wires": [
+        {
+          "cut_length_mm": 550.0,
+          "id": "W3",
+          "net": "N3",
+          "slack_mm": 0.0
+        }
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "short": [],
+  "unknown": [],
+  "unrouted": [],
+  "verdict": "pass"
+}
