@@ -13,6 +13,7 @@ from typing import Annotated, Literal, cast
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from . import _vrp
 from .contract import load_contract
 from .gates import run_gates
 from .records import (
@@ -21,6 +22,7 @@ from .records import (
     sha256_file,
     tree_sha256,
 )
+from .records import records_dir as _heads_records_dir
 from .workspace import reject_symlinks, workspace_path, workspace_root
 
 type Slug = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9._-]{0,63}$")]
@@ -99,6 +101,7 @@ class UxResponseV2(_StrictModel):
     decision_refs: list[Sha256] = Field(default_factory=list[Sha256])
     impression_refs: list[Sha256] = Field(default_factory=list[Sha256])
     questions_for_user: list[str] = Field(default_factory=list[str])
+    records_heads: dict[str, str] = Field(default_factory=dict[str, str])
     responded_at: AwareDatetime
 
     @model_validator(mode="after")
@@ -400,6 +403,19 @@ def _validated_request(request_id: str, root: Path) -> UxRequestV2:
     return request
 
 
+def _records_heads(root: Path) -> tuple[dict[str, str], list[str]]:
+    """Chain head per intact VRP log, plus the kinds whose chain is broken."""
+    heads: dict[str, str] = {}
+    broken: list[str] = []
+    for kind, filename in _vrp.LOG_FILES.items():
+        records, problems = _vrp.verify_log(_heads_records_dir(root) / filename, kind)
+        if problems:
+            broken.append(kind)
+        else:
+            heads[kind] = _vrp.chain_head(records)
+    return heads, broken
+
+
 def ux_respond(payload: Mapping[str, object], root: Path | None = None) -> dict[str, object]:
     base = (root or workspace_root()).resolve()
     response_input = UxRespondInput.model_validate(dict(payload))
@@ -441,6 +457,10 @@ def ux_respond(payload: Mapping[str, object], root: Path | None = None) -> dict[
         if not response_input.impression_refs:
             raise ValueError("done responses require at least one impression_ref")
 
+    heads, broken_logs = _records_heads(base)
+    if response_input.status == "done" and broken_logs:
+        raise ValueError(f"refusing 'done': VRP logs fail integrity ({', '.join(broken_logs)})")
+
     response = UxResponseV2(
         schema_version=2,
         system="ux-creator",
@@ -454,6 +474,7 @@ def ux_respond(payload: Mapping[str, object], root: Path | None = None) -> dict[
         decision_refs=response_input.decision_refs,
         impression_refs=response_input.impression_refs,
         questions_for_user=response_input.questions_for_user,
+        records_heads=heads,
         responded_at=datetime.now(UTC),
     )
     response_path = workspace_path(
