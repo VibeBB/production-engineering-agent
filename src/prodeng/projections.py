@@ -9,9 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ._envelope import sidecar_path, write_envelope
 from .contract import Characteristic, Inspection, Operation, ProdengContract
 from .ebom import product_ebom
 from .sampling import sampling_plan
+from .workspace import workspace_root
 
 
 @dataclass(frozen=True)
@@ -509,8 +511,23 @@ def write_provenance(contract: ProdengContract, out_dir: Path) -> Path:
     return path
 
 
+def _write_envelopes(artifacts: list[Path], contract_path: Path) -> None:
+    """Envelope v3 sidecars for sister-facing outputs; a broken decision log refuses."""
+    for artifact in artifacts:
+        try:
+            write_envelope(artifact, "prodeng", [contract_path], workspace_root())
+        except ValueError:
+            for stale in artifacts:
+                sidecar_path(stale).unlink(missing_ok=True)
+            raise
+
+
 def write_projections(
-    contract: ProdengContract, name: str, out_dir: Path, contract_dir: Path | None = None
+    contract: ProdengContract,
+    name: str,
+    out_dir: Path,
+    contract_dir: Path | None = None,
+    contract_path: Path | None = None,
 ) -> dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     extra: dict[str, Path] = {}
@@ -529,6 +546,8 @@ def write_projections(
     _write_work_instructions(contract, work_path)
     _write_ftm(contract, out_dir)
     provenance_path = write_provenance(contract, out_dir)
+    if contract_path is not None:
+        _write_envelopes([out_dir / "factory-test-spec.json", *extra.values()], contract_path)
     _write_manifest(contract, out_dir, name)
     return {
         "control_plan": control_path,

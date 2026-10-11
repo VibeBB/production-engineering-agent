@@ -84,7 +84,11 @@ def _cmd_export(args: argparse.Namespace) -> int:
         contract_path, contract = _load(args)
         out_dir = _out_dir(contract_path, args.out, contract)
         paths = write_projections(
-            contract, contract_path.stem.removesuffix(".prodeng"), out_dir, contract_path.parent
+            contract,
+            contract_path.stem.removesuffix(".prodeng"),
+            out_dir,
+            contract_path.parent,
+            contract_path,
         )
     except (OSError, ValueError) as exc:
         return _error("export", exc)
@@ -98,7 +102,11 @@ def _cmd_author(args: argparse.Namespace) -> int:
         report = run_gates(contract, contract_path.parent)
         out_dir = _out_dir(contract_path, args.out, contract)
         paths = write_projections(
-            contract, contract_path.stem.removesuffix(".prodeng"), out_dir, contract_path.parent
+            contract,
+            contract_path.stem.removesuffix(".prodeng"),
+            out_dir,
+            contract_path.parent,
+            contract_path,
         )
         request_paths = write_requests(contract, report, contract_path.parent, contract_path)
         render_paths: dict[str, Path] = {}

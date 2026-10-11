@@ -5,6 +5,9 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
+from prodeng._envelope import check_envelope, sidecar_path
 from prodeng.contract import load_contract
 from prodeng.gates import run_gates
 from prodeng.projections import write_projections
@@ -92,3 +95,18 @@ def test_work_instruction_and_factory_spec_include_required_sections(tmp_path: P
         "Duration budget",
     ):
         assert f"## {section}" in factory_spec
+
+
+def test_ftm_spec_carries_envelope_v3(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = Path("examples/smart-kettle/smart-kettle.prodeng.json").resolve()
+    contract = load_contract(path)
+    monkeypatch.setenv("OPENHANDS_PROJECT_DIR", str(tmp_path))
+    paths = write_projections(contract, "smart-kettle", tmp_path / "out", path.parent, path)
+    spec = paths["factory_test_json"]
+    assert check_envelope(spec, "prodeng", tmp_path)[0] == "pass"
+    log = tmp_path / "observations" / "prodeng" / "decisions.jsonl"
+    log.parent.mkdir(parents=True)
+    log.write_text("{forged\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="fail integrity"):
+        write_projections(contract, "smart-kettle", tmp_path / "out", path.parent, path)
+    assert not sidecar_path(spec).exists()
