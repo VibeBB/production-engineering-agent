@@ -15,6 +15,7 @@ changes.
 | Wire crimp table | `wire-crimp` | No extracted lists; the strict `WireCrimpSource` mirror is re-validated by the gate. |
 | Wire formboard | `wire-formboard` | No extracted lists; the strict `WireFormboardSource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
+| Mechanical brief | `mech-brief` | No extracted lists; the enclosure `width_mm`/`depth_mm`/`height_mm` are re-read by `packaging.fit`. |
 | Mechanical appearance | `mech-appearance` | Limit sample IDs; the strict `MechAppearanceSource` mirror is re-validated by the gate. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
 | UX design | `ux-contract` | Product surface IDs. |
@@ -74,6 +75,17 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
+
+## Mechanical packaging handoff
+
+Import mechanical-agent's design brief (`<name>.brief.json`) as
+`mech-brief`; its enclosure outer size is the product envelope packed into
+the carton declared in `packaging`. `packaging.fit` re-reads the pinned
+brief and fails when it changed, is malformed, or the packed block
+(`arrangement` × envelope + cushion on both sides) exceeds the carton on any
+axis; `packaging.mass` and `packaging.stack` check gross mass and pallet
+compression against cited limits. Transport drop or vibration testing
+(ISTA) and shipping labels stay outside the contract.
 
 ## Wire crimp handoff
 

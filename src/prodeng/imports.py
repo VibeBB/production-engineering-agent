@@ -16,6 +16,7 @@ ImportKind = Literal[
     "circuit-brief",
     "circuit-connectivity",
     "circuit-assembly",
+    "mech-brief",
     "mech-envelope",
     "mech-appearance",
     "wire-contract",
@@ -31,6 +32,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "circuit-brief": "circuit",
     "circuit-connectivity": "circuit",
     "circuit-assembly": "circuit",
+    "mech-brief": "mech",
     "mech-envelope": "mech",
     "mech-appearance": "mech",
     "wire-contract": "wire",
@@ -372,6 +374,21 @@ def _strings(objects: list[dict[str, object]], field: str, *, optional: bool = F
     return sorted(set(found))
 
 
+def mech_envelope_mm(payload: dict[str, object]) -> tuple[float, float, float]:
+    """Outer enclosure width, depth and height from a mechanical-agent design brief."""
+    enclosure = payload.get("enclosure")
+    if not isinstance(enclosure, dict):
+        raise ValueError("mech brief declares no enclosure envelope")
+    box = cast(dict[str, object], enclosure)
+    sizes: list[float] = []
+    for axis in ("width_mm", "depth_mm", "height_mm"):
+        value = box.get(axis)
+        if isinstance(value, bool) or not isinstance(value, int | float) or value <= 0:
+            raise ValueError(f"mech brief enclosure {axis} must be a positive number")
+        sizes.append(float(value))
+    return sizes[0], sizes[1], sizes[2]
+
+
 def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
     if kind == "circuit-brief":
         parts = _objects(payload, "parts")
@@ -392,6 +409,9 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
         except ValidationError as exc:
             raise ValueError(f"malformed circuit-assembly artifact: {exc}") from exc
         return ImportedData(parts=sorted({item.ref for item in board.populated()}))
+    if kind == "mech-brief":
+        mech_envelope_mm(payload)
+        return ImportedData()
     if kind == "mech-envelope":
         return ImportedData(anchors=_strings(_objects(payload, "anchors"), "name"))
     if kind == "mech-appearance":

@@ -46,6 +46,10 @@ produces fail; with no failures, any unknown produces unknown.
 | `appearance.limit_samples` | `<design>:<face>:<defect>` | A `visual` inspection on an `attribute` characteristic holds the accept and reject limit samples of every class A/B defect limit in the current `mech-appearance` artifact; unreadable artifact is unknown, changed or malformed is fail. |
 | `firmware.programming` | MCU | A `programming` operation lists the MCU in `programs`, the ELF still has the gated SHA-256 and size, and the firmware was gated against the current `factory-test-spec.json` and its command ids (or neither side declares a factory test mode); an unreadable artifact or ELF is unknown. |
 | `fpga.programming` | FPGA device | A `programming` operation lists the device in `programs`, the target is `flash`, and the bitstream still has the gated SHA-256 and size; an unreadable artifact or bitstream is unknown. |
+| `packaging.fit` | Product | Only with `packaging`: the single `mech-brief` import's enclosure (width × depth × height) times `arrangement` plus `2 × cushion_mm` fits `carton_inner_mm` on x/y/z; no brief is unknown, a changed, malformed or second brief fails. |
+| `packaging.mass` | Product | Gross carton mass `units × unit_mass_kg + packaging_mass_kg` ≤ `max_gross_kg` (cited handling limit). |
+| `packaging.stack` | Product | With `pallet`: `(layers − 1) × gross × g × safety_factor` ≤ the supplier `box_compression_n`. |
+| `packaging.operation` | Product | At least one `packing` operation packs the carton. |
 | `sim.prediction` | Simulation | A characteristic's pinned simulation-agent report check passes and predicts a value inside `[lsl, usl]`; a changed report or a simulation fail fails, and a missing report, check, or numeric prediction is unknown. |
 | `requirements.open_questions` | Open question | Open `Q` requirement is unknown. |
 
