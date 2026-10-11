@@ -145,6 +145,7 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
                     "wire-contract",
                     "wire-crimp",
                     "wire-formboard",
+                    "wire-continuity",
                     "ux-contract",
                     "fpga-production",
                     "firmware-production",

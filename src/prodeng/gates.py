@@ -20,6 +20,7 @@ from .imports import (
     FirmwareProductionSource,
     FpgaProductionSource,
     MechAppearanceSource,
+    WireContinuitySource,
     WireCrimpSource,
     WireFormboardSource,
     mech_envelope_mm,
@@ -385,6 +386,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.extend(_crimp_checks(contract, imported, contract_dir))
         if imported.kind == "wire-formboard":
             checks.append(_formboard_check(contract, imported, contract_dir))
+        if imported.kind == "wire-continuity":
+            checks.append(_continuity_check(contract, imported, contract_dir))
 
     if contract.packaging is not None:
         checks.extend(_packaging_checks(contract, contract_dir))
@@ -812,6 +815,60 @@ def _formboard_check(
     routes = ", ".join(f"{route.id} {route.length_mm:g} mm" for route in board.routes)
     return _check(
         gate, board.contract_id, "pass", longest, "mm", f"{routes} on {', '.join(holders)}"
+    )
+
+
+def _continuity_check(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> GateCheck:
+    """Every harness unit gets a 100% continuity/isolation test on the wire table."""
+    gate = "wire.continuity"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return _check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return _check(gate, imported.path, "fail", detail="artifact changed since import")
+    try:
+        table = WireContinuitySource.model_validate_json(raw)
+    except ValidationError as exc:
+        return _check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")
+    if table.verdict != "pass":
+        return _check(
+            gate,
+            table.contract_id,
+            "unknown",
+            detail=f"wire continuity table is incomplete: {', '.join(table.unknown)}",
+        )
+    points = sum(len(group.points) for group in table.groups)
+    bound = {c.id for c in contract.characteristics if c.continuity}
+    kinds = {op.id: op.kind for op in contract.operations}
+    holders = sorted(
+        f"{item.id} on {item.operation}"
+        for item in contract.inspections
+        if item.characteristic in bound
+        and item.sampling.mode == "full"
+        and kinds.get(item.operation) in {"harness", "test"}
+    )
+    if not holders:
+        return _check(
+            gate,
+            table.contract_id,
+            "fail",
+            points,
+            "points",
+            "no 100% inspection of a continuity characteristic on a harness or test operation",
+        )
+    return _check(
+        gate,
+        table.contract_id,
+        "pass",
+        points,
+        "points",
+        f"{len(table.groups)} conductor groups by {', '.join(holders)}",
     )
 
 
