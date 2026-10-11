@@ -23,6 +23,7 @@ ImportKind = Literal[
     "wire-contract",
     "wire-crimp",
     "wire-formboard",
+    "wire-continuity",
     "ux-contract",
     "fpga-production",
     "firmware-production",
@@ -40,6 +41,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "wire-contract": "wire",
     "wire-crimp": "wire",
     "wire-formboard": "wire",
+    "wire-continuity": "wire",
     "ux-contract": "ux",
     "fpga-production": "fpga",
     "firmware-production": "firmware",
@@ -345,6 +347,41 @@ class WireFormboardSource(BaseModel):
         return self
 
 
+class ContinuityGroupMirror(BaseModel):
+    """Connector test points joined by one conductor (wires and splices)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    points: list[str] = Field(min_length=1)
+    nets: list[str] = Field(min_length=1)
+    wires: list[str] = Field(min_length=1)
+
+
+class WireContinuitySource(BaseModel):
+    """Strict mirror of wire-agent's ``<contract_id>.wire-continuity.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_kind: Literal["wire_continuity"]
+    schema_version: Literal[1]
+    contract_id: str = Field(min_length=1)
+    contract_sha256: str = Field(pattern=_SHA256)
+    groups: list[ContinuityGroupMirror]
+    unknown: list[str]
+    verdict: Literal["pass", "fail"]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> WireContinuitySource:
+        if (self.verdict == "pass") == bool(self.unknown):
+            raise ValueError("verdict disagrees with unknown")
+        if self.verdict == "pass" and not self.groups:
+            raise ValueError("a passing table needs at least one group")
+        points = [point for group in self.groups for point in group.points]
+        if len(points) != len(set(points)):
+            raise ValueError("a test point appears in more than one group")
+        return self
+
+
 class FirmwareProductionSource(BaseModel):
     """Strict mirror of firmware-agent's ``<name>.fw-production.json``.
 
@@ -472,6 +509,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
             WireFormboardSource.model_validate(payload)
         except ValidationError as exc:
             raise ValueError(f"malformed wire-formboard artifact: {exc}") from exc
+        return ImportedData()
+    if kind == "wire-continuity":
+        try:
+            WireContinuitySource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed wire-continuity artifact: {exc}") from exc
         return ImportedData()
     if kind == "wire-contract":
         return ImportedData(

@@ -1,0 +1,46 @@
+{
+  "artifact_kind": "wire_continuity",
+  "contract_id": "WH-0001",
+  "contract_sha256": "1e85580f5fa85844d041ae40106dc11e1d32ca0c117e8f853eb5b851b9779dea",
+  "groups": [
+    {
+      "nets": [
+        "N1"
+      ],
+      "points": [
+        "C1:1",
+        "C2:1"
+      ],
+      "wires": [
+        "W1"
+      ]
+    },
+    {
+      "nets": [
+        "N2"
+      ],
+      "points": [
+        "C1:2",
+        "C2:2"
+      ],
+      "wires": [
+        "W2"
+      ]
+    },
+    {
+      "nets": [
+        "N3"
+      ],
+      "points": [
+        "C1:3",
+        "C2:3"
+      ],
+      "wires": [
+        "W3"
+      ]
+    }
+  ],
+  "schema_version": 1,
+  "unknown": [],
+  "verdict": "pass"
+}

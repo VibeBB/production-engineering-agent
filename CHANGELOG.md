@@ -8,6 +8,10 @@
   unit's engineering BOM merged from the hash-pinned circuit brief, mech
   brief and wire contract; a missing source is `unknown`, a changed or
   malformed one fails.
+- `wire.continuity` gate, `wire-continuity` import kind and
+  `Characteristic.continuity`: the hash-pinned wire continuity table must be
+  held by a 100% continuity/isolation inspection on a harness or test
+  operation; an incomplete table is `unknown`.
 - SLP v2 responses carry `records_heads`, the chain head of every intact
   VRP log at answer time; UX-creator checks it on receipt. `done` is
   refused while any VRP log fails integrity.

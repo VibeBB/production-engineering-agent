@@ -17,7 +17,7 @@ Its top-level fields are:
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
 | `factory_test_mode` | Optional entry conditions, field lockout, interface/nets, commands/timeouts, provisioning, exit, and duration budget. |
 | `packaging` | Optional shipping carton: `carton_inner_mm` and `arrangement` (units along x/y/z, product upright), `cushion_mm`, `unit_mass_kg`, `packaging_mass_kg`, `max_gross_kg` with a cited `source`, and optional `pallet` (`layers`, carton `box_compression_n`, `safety_factor` ≥ 1, `source`). The product envelope comes from a `mech-brief` import. Optional `contents[]` (`id` of a UX `oobe.in_box` item, `layer` ≥ 1 with 1 = top, `operation` of kind `packing`; unique ids) feeds `packaging.oobe`. |
-| `imports` | Supported sibling source kind (including `mech-brief`, `circuit-assembly`, `circuit-handling`, `wire-crimp`, `wire-formboard`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
+| `imports` | Supported sibling source kind (including `mech-brief`, `circuit-assembly`, `circuit-handling`, `wire-crimp`, `wire-formboard`, `wire-continuity`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
 | `ebom_sources` | Optional, unique subset of `circuit-brief`, `mech-brief`, `wire-contract`: the disciplines that make one product unit. When set, `ebom.complete` runs and `export` writes `ebom.json`. |
 
 Model validators enforce ID prefixes, references, mutually consistent
