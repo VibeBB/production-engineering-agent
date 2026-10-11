@@ -13,6 +13,7 @@ from typing import Literal, cast
 from pydantic import ValidationError
 
 from .contract import CRIMP_UNITS, Characteristic, ImportRef, Inspection, ProdengContract
+from .ebom import product_ebom
 from .imports import (
     CircuitAssemblySource,
     CircuitHandlingSource,
@@ -388,6 +389,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
 
     if contract.packaging is not None:
         checks.extend(_packaging_checks(contract, contract_dir))
+    if contract.ebom_sources:
+        checks.append(_ebom_check(contract, contract_dir))
 
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
@@ -813,6 +816,16 @@ def _formboard_check(
     return _check(
         gate, board.contract_id, "pass", longest, "mm", f"{routes} on {', '.join(holders)}"
     )
+
+
+def _ebom_check(contract: ProdengContract, contract_dir: Path) -> GateCheck:
+    """Every declared EBOM source is imported once, unchanged and readable as a BOM."""
+    ebom = product_ebom(contract, contract_dir)
+    status = cast(GateStatus, ebom["verdict"])
+    lines = cast(list[object], ebom["lines"])
+    problems = [*cast(list[str], ebom["failed"]), *cast(list[str], ebom["unknown"])]
+    detail = "; ".join(problems) or f"{len(lines)} lines from {', '.join(contract.ebom_sources)}"
+    return _check("ebom.complete", contract.product.name, status, len(lines), "lines", detail)
 
 
 STANDARD_GRAVITY = 9.80665

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .contract import Characteristic, Inspection, Operation, ProdengContract
+from .ebom import product_ebom
 from .sampling import sampling_plan
 
 
@@ -508,8 +509,14 @@ def write_provenance(contract: ProdengContract, out_dir: Path) -> Path:
     return path
 
 
-def write_projections(contract: ProdengContract, name: str, out_dir: Path) -> dict[str, Path]:
+def write_projections(
+    contract: ProdengContract, name: str, out_dir: Path, contract_dir: Path | None = None
+) -> dict[str, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
+    extra: dict[str, Path] = {}
+    if contract.ebom_sources and contract_dir is not None:
+        extra["ebom"] = out_dir / "ebom.json"
+        _json_write(extra["ebom"], product_ebom(contract, contract_dir))
     control_path = out_dir / "control-plan.csv"
     _write_control_plan(contract, control_path)
     _write_inspection_plan(contract, out_dir)
@@ -535,4 +542,5 @@ def write_projections(contract: ProdengContract, name: str, out_dir: Path) -> di
         "factory_test_markdown": out_dir / "factory-test-spec.md",
         "manifest": out_dir / "manifest.json",
         "provenance": provenance_path,
+        **extra,
     }

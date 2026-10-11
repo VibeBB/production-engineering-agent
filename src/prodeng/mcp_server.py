@@ -401,7 +401,9 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
             if arguments.get("out_dir")
             else _default_out(contract_path, contract.product.name)
         )
-        paths = write_projections(contract, contract_path.stem.removesuffix(".prodeng"), out_dir)
+        paths = write_projections(
+            contract, contract_path.stem.removesuffix(".prodeng"), out_dir, contract_path.parent
+        )
         payload: dict[str, object] = {
             "verdict": "pass",
             "stage": "export",

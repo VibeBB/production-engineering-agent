@@ -4,6 +4,10 @@
 
 ### Added
 
+- `ebom_sources`, `ebom.complete` gate and `ebom.json` export: one product
+  unit's engineering BOM merged from the hash-pinned circuit brief, mech
+  brief and wire contract; a missing source is `unknown`, a changed or
+  malformed one fails.
 - `packaging.oobe` gate and `packaging.contents[]`: the carton packs the
   pinned UX contract's `oobe.in_box` items once each, by a packing
   operation, top layer first in UX unboxing order.
