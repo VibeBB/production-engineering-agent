@@ -1,47 +1,68 @@
 # Records and vision review
 
-## VRP v1
+## VRP v2
 
-The plugin uses the shared VibeBB Record Protocol v1. Three append-only
-JSONL logs live under `observations/prodeng/`:
+The plugin uses the shared VibeBB Record Protocol v2 (wire-agent is the
+family reference; [ADR-0010](adr/0010-vrp-v2-records.md)). Append-only JSONL
+logs live under `observations/prodeng/`:
 
-- `decisions.jsonl` records why a non-trivial choice was made.
-- `impressions.jsonl` records an end-of-stage reflection bound to final
-  artifacts.
-- `vision-reviews.jsonl` records what was observed in an image and binds
-  the review to an image or vision event.
+| Log | Record kind |
+| --- | --- |
+| `decisions.jsonl` | `decision` — why a non-trivial choice was made |
+| `impressions.jsonl` | `stage_impression` — grounded end-of-stage reflection |
+| `vision-reviews.jsonl` | `vision_review` — what an image shows, per reviewer role |
+| `reconciles.jsonl` | `review_reconcile` — primary/blind/tiebreak outcome |
+| `insights.jsonl` | `insight_status` — adopt/reject/defer/dispute an idea or concern |
+| `song-receipts.jsonl` | `song_receipt` — one-time receipt of a bard song |
+| `reads.jsonl` | `upstream_read` — read receipt for a sister impression |
 
-Every entry has `schema_version: 1`, `plugin: "prodeng"`, a sequence number,
-SHA-256 event ID, and `recorded_at`. Use the MCP record tools or CLI
-`record` subcommands; direct JSONL editing is not the supported writer path.
-`prodeng_records_status` reports counts and the last Stop-hook verdict.
+Every entry has `schema_version: 2`, `plugin: "prodeng"`, a sequence number,
+`prev_event_id` linking it to the previous entry, and an `event_id` derived
+from the SHA-256 of the canonical record. Each writer verifies the whole
+chain before appending: an edited, deleted, truncated, reordered or
+malformed line fails closed. v1 logs are archived as `<name>.v1.jsonl` on the
+first v2 write. Use the MCP record tools or `python -m prodeng record <kind>`;
+direct JSONL editing is blocked by `protect-generated`.
 
 ### Decision
 
-A decision has a slug ID and stage, a question, first-principles or
-standards-based principles, at least two distinct options with pros and
-cons, a chosen option, a rationale of at least 200 characters, assumptions,
-unknowns, at least one risk, a revisit trigger, an author, and evidence.
-Questions need at least 10 characters; principles must each contain at
-least 12 characters. Each option needs a unique name plus non-empty pros and
-cons, and `chosen` must match one option. Workspace path evidence (a file or
-directory) is SHA-256-bound; non-file evidence names a reference.
+A decision has a slug ID and stage, a question, principles, at least two
+distinct options with pros and cons, a chosen option, a rationale of at least
+200 characters, assumptions, unknowns, risks, a revisit trigger, an author,
+and SHA-256-bound evidence.
 
 ### Stage impression
 
-A stage impression names its stage, binds to one or more existing files or
-directories by SHA-256, and contains at least 400 characters and three
-distinct sentences. The prose describes what was noticed, what works, what
-is concerning, how the maker or user would interpret the result, and what
-to do next.
+A stage impression binds to existing artifacts by SHA-256 and needs 400+
+characters in three or more sentences plus structured `facets` (`observed`,
+`works`, `concerns`, `feelings` for maker and user, `next_actions`),
+`claims` that quote an exact token found in a bound artifact, a
+`confidence`, and `unknowns`. Every sister impression the author took in must
+appear in `upstream` with a matching read receipt. A near-duplicate of an
+earlier impression, or a concern re-raised after it was disputed or resolved
+without new evidence, is refused.
 
 ### Vision review
 
-A vision review binds to an `image_path` or `source_event_id`, records the
-model and checklist slug, and may include findings with severity
-`info`, `warning`, or `error`. Its impression follows the same 400-character
-and three-sentence rule. If an image path is provided, the writer records
-its current SHA-256.
+A vision review binds to an `image_path` (SHA-256) or `source_event_id`,
+names the model, checklist slug and `reviewer` role (`primary`, `blind` or
+`tiebreak`), and carries findings, facets, claims, `confidence` and a
+`lookback` entry per claim. Production renders (`**/renders/*.png`) are
+dual-review images: `prodeng-blind-review` records the blind round behind the
+`blind-guard` hook, and `prodeng_record_reconcile` closes round 1 when the
+two agree. A split calls a round-2 `tiebreak`; a split after round 2 stays
+`unknown`. Reviews never become gate verdicts.
+
+### Insights, reads and songs
+
+`insight` records the lifecycle of an idea or concern from any record
+(`adopted`, `rejected`, `deferred`, `disputed`, `resolved`) with a rationale.
+`read` writes a receipt for a sister impression found through
+`prodeng_records_search` / `prodeng_records_digest`. prodeng only receives
+bard songs: `song-receipt` pins `liaison/<id>.bard-song.json` by SHA-256,
+is allowed once per song, and never requests another song.
+
+`prodeng_records_status` reports counts and the last Stop-hook verdict.
 
 ## Vision review points
 
@@ -78,7 +99,7 @@ The post-tool `record-vision-tool-event` hook hashes successful
 `record-image-observation` hook records image paths and byte hashes from
 direct views or successful render/author/terminal responses in
 `observations/prodeng/image-observations.jsonl`. These provenance logs are
-additional observation data, not substitutes for the three VRP event logs.
+additional observation data, not substitutes for the VRP event logs.
 
 The record Stop hook enforces record completeness according to
 `records-policy.json`; records never feed gate calculations. See

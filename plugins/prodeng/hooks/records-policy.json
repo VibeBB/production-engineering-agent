@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "plugin": "prodeng",
   "records_dir": "observations/prodeng",
   "artifact_globs": [
@@ -19,7 +19,8 @@
     "**/renders/*.png",
     "liaison/*.ux-response.json"
   ],
-  "ignore_globs": ["examples/**", "tests/**", ".devin/**"],
+  "ignore_globs": ["examples/**", "tests/**", ".devin/**", "observations/**"],
+  "dual_review_globs": ["**/renders/*.png"],
   "max_stop_denials": 2,
-  "record_hint": "Use the MCP tools prodeng_record_decision, prodeng_record_impression and prodeng_record_vision_review (or `python -m prodeng record decision|impression|vision-review --json <file>`). Impressions need at least 400 characters and 3 sentences: what you noticed, what works, what worries you, how a maker or user would read it, and what to do next."
+  "record_hint": "Use the MCP tools prodeng_record_decision, prodeng_record_impression, prodeng_record_vision_review, prodeng_record_reconcile, prodeng_record_read, prodeng_record_insight and prodeng_record_song_receipt (or `python -m prodeng record <kind> --json <file>`). Impressions need 400+ characters, 3+ sentences, facets (observed, works, concerns, feelings, next_actions), claims quoting exact tokens from the artifacts, and an upstream entry for every sister impression you took in. Search sister impressions with prodeng_records_search / prodeng_records_digest."
 }

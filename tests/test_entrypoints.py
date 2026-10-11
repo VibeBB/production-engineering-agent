@@ -27,6 +27,12 @@ EXPECTED_TOOLS = {
     "prodeng_record_impression",
     "prodeng_record_vision_review",
     "prodeng_records_status",
+    "prodeng_record_reconcile",
+    "prodeng_record_insight",
+    "prodeng_record_song_receipt",
+    "prodeng_record_read",
+    "prodeng_records_digest",
+    "prodeng_records_search",
     "prodeng_ux_inbox",
     "prodeng_ux_respond",
 }

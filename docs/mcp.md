@@ -9,9 +9,15 @@ workspace path helper.
 | Tool | Access | Input summary | Output |
 | --- | --- | --- | --- |
 | `prodeng_record_decision` | Write | `DecisionInput`: slug ID/stage, question, principles, at least two named options with pros/cons, chosen option, rationale, assumptions, unknowns, risks, revisit trigger, author, and file/reference evidence. | Appends a VRP decision and returns its event reference. |
-| `prodeng_record_impression` | Write | `StageImpressionInput`: stage slug, one or more workspace artifacts, and a 400+ character, three-sentence impression. | Appends a SHA-bound stage impression and returns its event reference. |
-| `prodeng_record_vision_review` | Write | `VisionReviewInput`: image path or source event ID, model, checklist slug, findings (`info`, `warning`, or `error`), and long-form impression. | Appends an image-bound vision review and returns its event reference. |
+| `prodeng_record_impression` | Write | `StageImpressionInput`: stage slug, workspace artifacts, a 400+ character, three-sentence impression, facets, exact-token claims, confidence, unknowns, and upstream references. | Appends a SHA-bound stage impression and returns its event reference. |
+| `prodeng_record_vision_review` | Write | `VisionReviewInput`: image path or source event ID, model, checklist slug, reviewer role, findings (`info`, `warning`, or `error`), long-form impression, facets, claims with lookback, and confidence. | Appends an image-bound vision review and returns its event reference. |
+| `prodeng_record_reconcile` | Write | `ReconcileInput`: image path, round, primary/blind (and round-2 tiebreak) vision-review event IDs, outcome, rationale. | Appends a review reconcile; a round-2 split stays `unknown`. |
+| `prodeng_record_insight` | Write | `InsightStatusInput`: target event ID, idea/concern reference, status (`adopted`, `rejected`, `deferred`, `disputed`, `resolved`), rationale, evidence. | Appends an insight lifecycle entry. |
+| `prodeng_record_song_receipt` | Write | `SongReceiptInput`: `liaison/<id>.bard-song.json` path and reflection. | Appends a one-time SHA-pinned song receipt. |
+| `prodeng_record_read` | Write | `ReadInput`: sister plugin and impression event ID, response. | Appends a read receipt for a sister impression. |
 | `prodeng_records_status` | Read | No arguments. | Record counts and last Stop-hook status. |
+| `prodeng_records_digest` | Read | No arguments. | Family digest of recent impressions, open concerns and unread sister records. |
+| `prodeng_records_search` | Read | `query` and optional filters. | Matching family records with event IDs. |
 | `prodeng_ux_inbox` | Read | No arguments. | UX-creator SLP v2 requests for prodeng, states, counts, and malformed-file details. |
 | `prodeng_ux_respond` | Write | `UxRespondInput`: request ID, status/reason, artifact paths, optional gate verdicts and contract path, VRP references, and user questions. | Validates and atomically writes `liaison/<id>.ux-response.json`. |
 | `prodeng_doctor` | Read | No arguments. | Package, Python, and tools-image diagnostics. |

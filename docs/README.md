@@ -20,7 +20,7 @@
   canonical shared hooks.
 - [Contracts](contracts.md): contract, request/response, render-index, VRP,
   and generated-output schemas.
-- [Records and vision](records-and-vision.md): VRP v1, image-review
+- [Records and vision](records-and-vision.md): VRP v2, blind image review
   checklists, and advisory semantics.
 - [Sister cooperation](sister-cooperation.md): import, request, response,
   and UX-creator SLP v2 boundaries.
@@ -64,3 +64,4 @@
 - [0007 — Deterministic vision renders](adr/0007-deterministic-vision-renders.md)
 - [0008 — UX liaison v2 and VRP adoption](adr/0008-ux-liaison-v2-and-vrp-adoption.md)
 - [0009 — Structural coverage gate (C0, C1, C2, MC/DC, boundaries)](adr/0009-structural-coverage.md)
+- [0010 — VRP v2 records and blind render review](adr/0010-vrp-v2-records.md)
