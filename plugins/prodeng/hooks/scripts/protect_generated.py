@@ -21,7 +21,7 @@ import shlex
 import sys
 from typing import Any, cast
 
-ARTIFACT_SUFFIXES = (".prodeng-request.json", ".ux-response.json")
+ARTIFACT_SUFFIXES = (".prodeng-request.json", ".ux-response.json", ".bard-song.json")
 ARTIFACT_NAMES = (
     "manifest.json",
     "provenance.json",
@@ -30,6 +30,10 @@ ARTIFACT_NAMES = (
     "decisions.jsonl",
     "impressions.jsonl",
     "vision-reviews.jsonl",
+    "reconciles.jsonl",
+    "insights.jsonl",
+    "reads.jsonl",
+    "song-receipts.jsonl",
     "records-status.json",
 )
 WRITE_TOOLS = {"file_editor", "apply_patch"}

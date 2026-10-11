@@ -15,7 +15,7 @@ from .doctor import run_doctor
 from .gates import run_gates
 from .imports import IMPORT_SYSTEMS, import_source
 from .projections import write_projections
-from .records import RECORDERS, records_summary
+from .records import RECORDERS, records_digest, records_search, records_summary
 from .report import write_report
 from .requests import write_requests
 from .responses import liaison_status
@@ -241,11 +241,20 @@ def _cmd_record(args: argparse.Namespace) -> int:
     if args.kind == "status":
         _print(records_summary())
         return 0
+    if args.kind == "digest":
+        _print(records_digest())
+        return 0
     try:
+        if args.kind == "search" and args.json is None:
+            _print(records_search({}))
+            return 0
         raw = json.loads(Path(args.json).read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
             raise ValueError("record JSON must be an object")
-        payload = RECORDERS[args.kind](cast(dict[str, Any], raw))
+        if args.kind == "search":
+            payload = records_search(cast(dict[str, Any], raw))
+        else:
+            payload = RECORDERS[args.kind](cast(dict[str, Any], raw))
     except (OSError, ValueError) as exc:
         return _error("record", exc)
     _print(payload)
@@ -316,10 +325,12 @@ def parser() -> argparse.ArgumentParser:
 
     record = sub.add_parser("record")
     record_kinds = record.add_subparsers(dest="kind", required=True)
-    for kind in ("decision", "impression", "vision-review"):
+    for kind in RECORDERS:
         writer = record_kinds.add_parser(kind)
         writer.add_argument("--json", required=True)
     record_kinds.add_parser("status")
+    record_kinds.add_parser("digest")
+    record_kinds.add_parser("search").add_argument("--json", default=None)
     record.set_defaults(func=_cmd_record)
 
     mcp = sub.add_parser("mcp_server")

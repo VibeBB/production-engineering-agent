@@ -16,10 +16,8 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 from .contract import load_contract
 from .gates import run_gates
 from .records import (
-    LOG_FILES,
-    DecisionRecord,
-    StageImpression,
-    VisionReview,
+    decision_event_ids,
+    impression_event_ids,
     sha256_file,
     tree_sha256,
 )
@@ -334,25 +332,6 @@ def ux_inbox(root: Path | None = None) -> dict[str, object]:
     return {"verdict": "pass", "requests": result, "malformed": malformed, "counts": counts}
 
 
-def _record_event_ids(filename: str, model: type[BaseModel], root: Path) -> set[str]:
-    path = workspace_path(Path("observations") / "prodeng" / filename, root)
-    if not path.exists():
-        return set()
-    reject_symlinks(path)
-    event_ids: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        try:
-            record = model.model_validate_json(line)
-        except ValueError:
-            continue
-        event_id = getattr(record, "event_id", None)
-        if isinstance(event_id, str):
-            event_ids.add(event_id)
-    return event_ids
-
-
 def _artifact_ref(value: str, root: Path) -> UxArtifact:
     path = workspace_path(value, root)
     if not path.exists():
@@ -437,10 +416,8 @@ def ux_respond(payload: Mapping[str, object], root: Path | None = None) -> dict[
     input_hashes, _ = _current_input_hashes(request, base, missing_is_error=True)
     artifacts = [_artifact_ref(value, base) for value in response_input.artifacts]
     gate_verdicts = _gate_verdicts(response_input, base)
-    decision_ids = _record_event_ids(LOG_FILES["decision"], DecisionRecord, base)
-    impression_ids = _record_event_ids(
-        LOG_FILES["stage_impression"], StageImpression, base
-    ) | _record_event_ids(LOG_FILES["vision_review"], VisionReview, base)
+    decision_ids = decision_event_ids(base)
+    impression_ids = impression_event_ids(base)
     unknown_decisions = sorted(set(response_input.decision_refs) - decision_ids)
     unknown_impressions = sorted(set(response_input.impression_refs) - impression_ids)
     if unknown_decisions:

@@ -89,7 +89,7 @@ def test_cli_record_impression_status_and_validation(
     (output / "control-plan.csv").write_text("operation,check\n", encoding="utf-8")
     renders = output / "renders"
     renders.mkdir()
-    (renders / "control-plan.png").write_bytes(b"png")
+    (renders / "control-plan.png").write_bytes(b"png operation")
     impression = (
         "The inspection sequence follows the control plan and gives each operation "
         "a clear check. The sampled characteristics are tied to the listed process "
@@ -97,8 +97,27 @@ def test_cli_record_impression_status_and_validation(
         "concern is that operator time has not yet been measured at production rate. "
         "Confirm the station timing during the pilot and update the plan if the "
         "observed cycle exceeds takt. Verify the sampling instructions at the work "
-        "station before release so operators can follow the same sequence on every shift."
+        "station before release so operators can follow the same sequence on every shift. "
+        "The plan header lists the operation column beside the check column."
     )
+    facets = {
+        "observed": ["the plan lists operations", "each operation has a check"],
+        "works": ["checks are tied to process risks"],
+        "concerns": [
+            {
+                "id": "c1",
+                "text": "operator time is not yet measured at production rate",
+                "severity": "info",
+                "about": "self",
+                "anchor": "operation",
+            }
+        ],
+        "feelings": {
+            "maker": "the sequence reads without surprises",
+            "user": "inspectors can find the intended method",
+        },
+        "next_actions": ["confirm station timing during the pilot"],
+    }
     record_json = tmp_path / "record.json"
     record_json.write_text(
         json.dumps(
@@ -106,6 +125,21 @@ def test_cli_record_impression_status_and_validation(
                 "stage": "projections",
                 "artifacts": ["out/control-plan.csv"],
                 "impression": impression,
+                "facets": facets,
+                "claims": [
+                    {
+                        "text": "the plan has an operation column",
+                        "anchor": "operation",
+                        "artifact": "out/control-plan.csv",
+                    },
+                    {
+                        "text": "the plan has a check column",
+                        "anchor": "check",
+                        "artifact": "out/control-plan.csv",
+                    },
+                ],
+                "confidence": "medium",
+                "unknowns": [],
             }
         ),
         encoding="utf-8",
@@ -159,8 +193,20 @@ def test_cli_record_impression_status_and_validation(
                 "image_path": "out/renders/control-plan.png",
                 "model": "openhands/kimi-k3",
                 "checklist": "control-plan",
+                "reviewer": "primary",
                 "findings": [],
                 "impression": impression,
+                "facets": facets,
+                "claims": [
+                    {
+                        "text": "the sheet shows the operation column",
+                        "anchor": "operation",
+                        "artifact": "out/renders/control-plan.png",
+                    }
+                ],
+                "lookback": [{"claim": 0, "verdict": "confirmed", "note": "column visible"}],
+                "confidence": "medium",
+                "unknowns": [],
             }
         ),
         encoding="utf-8",

@@ -39,7 +39,13 @@ unknown. Argparse usage errors also return `2`.
 | `record decision --json FILE` | JSON object matching `DecisionInput`. | Appends a decision VRP record; `0` success, `2` error. |
 | `record impression --json FILE` | JSON object matching `StageImpressionInput`. | Appends a stage-impression record; `0` success, `2` error. |
 | `record vision-review --json FILE` | JSON object matching `VisionReviewInput`. | Appends a vision-review record; `0` success, `2` error. |
+| `record reconcile --json FILE` | JSON object matching `ReconcileInput`. | Appends a review reconcile; `0` success, `2` error. |
+| `record insight --json FILE` | JSON object matching `InsightStatusInput`. | Appends an insight lifecycle entry; `0` success, `2` error. |
+| `record song-receipt --json FILE` | JSON object matching `SongReceiptInput`. | Appends a one-time song receipt; `0` success, `2` error. |
+| `record read --json FILE` | JSON object matching `ReadInput`. | Appends a sister read receipt; `0` success, `2` error. |
 | `record status` | none | Prints record counts and last Stop-hook status; returns `0`. |
+| `record digest` | none | Prints the family record digest; returns `0`. |
+| `record search --json FILE` | JSON object with `query` and optional filters. | Prints matching family records; returns `0`. |
 | `mcp_server` | none | Runs the stdio MCP server until the host ends the session. |
 
 `--version` prints the package version. CLI errors are JSON objects with

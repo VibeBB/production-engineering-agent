@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- Port VRP v2 from wire-agent: hash-chained logs, grounded structured
+  impressions, no-re-raise, read receipts, insight lifecycle, blind
+  primary/blind/tiebreak review of production renders
+  (`prodeng-blind-review`), bard song receipts, and family digest/search
+  through new CLI `record` kinds and MCP tools.
+
 ### Fixed
 
 - Add executable module entrypoints for the CLI and MCP server.

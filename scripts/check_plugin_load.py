@@ -17,18 +17,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_DIR = REPO_ROOT / "plugins" / "prodeng"
 
 EXPECTED_AGENTS = {
+    "prodeng-blind-review",
     "prodeng-ftm",
     "prodeng-liaison",
     "prodeng-planner",
     "prodeng-review",
 }
 EXPECTED_AGENT_MODELS = {
+    "prodeng-blind-review": "vibebb-review",
     "prodeng-ftm": "vibebb-author",
     "prodeng-liaison": "vibebb-author",
     "prodeng-planner": "vibebb-author",
     "prodeng-review": "vibebb-review",
 }
 EXPECTED_AGENT_TOOLS = {
+    "prodeng-blind-review": {"file_editor", "grep", "glob", "VisionInspectTool"},
     "prodeng-ftm": {
         "terminal",
         "file_editor",
@@ -59,6 +62,7 @@ EXPECTED_AGENT_TOOLS = {
     "prodeng-review": {"file_editor", "grep", "glob", "VisionInspectTool", "ThinkTool"},
 }
 EXPECTED_AGENT_LIMITS = {
+    "prodeng-blind-review": (20, 1.5),
     "prodeng-ftm": (30, 3.0),
     "prodeng-liaison": (30, 3.0),
     "prodeng-planner": (40, 3.0),

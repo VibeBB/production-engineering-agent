@@ -73,11 +73,11 @@ source filename, and source SHA-256. No timestamp is written.
 
 ## VRP records
 
-VRP v1 appends `decision`, `stage_impression`, and `vision_review` events to
-`observations/prodeng/decisions.jsonl`,
-`observations/prodeng/impressions.jsonl`, and
-`observations/prodeng/vision-reviews.jsonl`. Each event has schema version,
-plugin name, sequence, event ID, and recorded time. Required fields and
+VRP v2 appends hash-chained `decision`, `stage_impression`,
+`vision_review`, `review_reconcile`, `insight_status`, `song_receipt`, and
+`upstream_read` events to the JSONL logs under `observations/prodeng/`. Each
+event has `schema_version: 2`, plugin name, sequence, `prev_event_id`, event
+ID, and recorded time. Required fields and
 writer behavior are detailed in [Records and vision](records-and-vision.md).
 
 ## `out/<product>/` projections

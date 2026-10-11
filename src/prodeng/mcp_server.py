@@ -23,11 +23,21 @@ from .imports import ImportKind, import_source
 from .projections import write_projections
 from .records import (
     DecisionInput,
+    InsightStatusInput,
+    ReadInput,
+    ReconcileInput,
+    SongReceiptInput,
     StageImpressionInput,
     VisionReviewInput,
     record_decision,
     record_impression,
+    record_insight,
+    record_read,
+    record_reconcile,
+    record_song_receipt,
     record_vision_review,
+    records_digest,
+    records_search,
     records_summary,
 )
 from .report import write_report
@@ -46,6 +56,29 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
     "prodeng_records_status": {
         "type": "object",
         "properties": {},
+        "additionalProperties": False,
+    },
+    "prodeng_record_reconcile": ReconcileInput.model_json_schema(),
+    "prodeng_record_insight": InsightStatusInput.model_json_schema(),
+    "prodeng_record_song_receipt": SongReceiptInput.model_json_schema(),
+    "prodeng_record_read": ReadInput.model_json_schema(),
+    "prodeng_records_digest": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "prodeng_records_search": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string"},
+            "system": {"type": "string"},
+            "kind": {"type": "string", "enum": ["stage_impression", "vision_review"]},
+            "stage": {"type": "string"},
+            "artifact": {"type": "string"},
+            "severity": {"type": "string", "enum": ["info", "warning", "error"]},
+            "open_only": {"type": "boolean"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 200},
+        },
         "additionalProperties": False,
     },
     "prodeng_ux_inbox": {
@@ -163,6 +196,29 @@ _TOOL_DESCRIPTIONS = {
     "prodeng_records_status": (
         "Count production-engineering records and report the last Stop-hook verdict."
     ),
+    "prodeng_record_reconcile": (
+        "Compare independent reviews of one image: [primary, blind] (round 1) or "
+        "[primary, blind, tiebreak] (round 2, the last); a round-2 split stays unknown."
+    ),
+    "prodeng_record_insight": (
+        "Move an impression insight through tried/adopted/rejected/deferred/superseded; "
+        "a rejected insight returns only with revisits and new evidence."
+    ),
+    "prodeng_record_song_receipt": (
+        "Receive a bard song addressed to prodeng; a receipt never feeds a gate and "
+        "never asks bard for another song."
+    ),
+    "prodeng_record_read": (
+        "Record that a sister artifact was taken in; resolves the impressions bound to it."
+    ),
+    "prodeng_records_digest": (
+        "Family-wide impression digest: integrity per plugin, open concerns, disputes, "
+        "unanswered reads, insights, split reviews and undelivered songs."
+    ),
+    "prodeng_records_search": (
+        "Search every plugin's impressions by text, plugin, stage, artifact, severity or "
+        "open concerns; logs with broken integrity are listed separately."
+    ),
     "prodeng_ux_inbox": (
         "List valid UX-creator requests for prodeng and report new, stale, blocked, "
         "or answered state."
@@ -189,6 +245,10 @@ _WRITE_TOOLS = {
     "prodeng_record_decision",
     "prodeng_record_impression",
     "prodeng_record_vision_review",
+    "prodeng_record_reconcile",
+    "prodeng_record_insight",
+    "prodeng_record_song_receipt",
+    "prodeng_record_read",
     "prodeng_ux_respond",
     "prodeng_export",
     "prodeng_author",
@@ -279,6 +339,18 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
         return record_vision_review(arguments)
     if name == "prodeng_records_status":
         return records_summary()
+    if name == "prodeng_record_reconcile":
+        return record_reconcile(arguments)
+    if name == "prodeng_record_insight":
+        return record_insight(arguments)
+    if name == "prodeng_record_song_receipt":
+        return record_song_receipt(arguments)
+    if name == "prodeng_record_read":
+        return record_read(arguments)
+    if name == "prodeng_records_digest":
+        return records_digest()
+    if name == "prodeng_records_search":
+        return records_search(arguments)
     if name == "prodeng_ux_inbox":
         return ux_inbox()
     if name == "prodeng_ux_respond":

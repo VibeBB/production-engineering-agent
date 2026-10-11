@@ -65,6 +65,11 @@ floor or add `# pragma: no cover` to make a gate pass. `[tool.coverage.report]
 fail_under` is the combined statement+branch percentage coverage.py reports
 with `branch = true`.
 
+The VRP v2 port (ADR-0010) vendored about 1,000 statements of the shared
+record core into `src/prodeng/_vrp.py`; every floor and `fail_under` was
+re-baselined once to one point below that branch's measurement (C0 87, C1 72,
+decision 69, C2 65, MC/DC 40, boundary 57, combined 83).
+
 ## Test-design techniques
 
 Coverage shows what the tests executed, not whether they check the right

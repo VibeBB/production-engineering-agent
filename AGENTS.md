@@ -20,7 +20,8 @@ manufacturing-plan source of truth.
   OpenHands `task_tool_set` delegation, including validated inbound
   UX-creator SLP v2 requests and hash-bound replies. Never import sibling
   packages or edit their owned source artifacts directly.
-- VRP v1 stores decisions, stage impressions, and vision reviews in
+- VRP v2 stores hash-chained decisions, stage impressions, vision reviews,
+  reconciles, insights, read receipts, and song receipts in
   `observations/prodeng/`. The Stop hook enforces per-session record debt;
   write records through the typed MCP/CLI writers, never by editing logs.
 - Production-sheet PNGs are deterministic views, not gate inputs. Inspect

@@ -167,7 +167,39 @@ def _write_real_records(root: Path) -> tuple[str, str]:
         {
             "stage": "handoff",
             "artifacts": ["artifact.txt"],
-            "impression": LONG_IMPRESSION,
+            "impression": LONG_IMPRESSION + " The artifact reads approved manufacturing handoff.",
+            "facets": {
+                "observed": ["the handoff is approved", "the artifact names the handoff"],
+                "works": ["the inputs are bound to the request"],
+                "concerns": [
+                    {
+                        "id": "c1",
+                        "text": "operators may react differently to out-of-limit results",
+                        "severity": "info",
+                        "about": "self",
+                        "anchor": "handoff",
+                    }
+                ],
+                "feelings": {
+                    "maker": "the basis is easy to check",
+                    "user": "the line gets one clear sequence",
+                },
+                "next_actions": ["confirm the escalation path with operators"],
+            },
+            "claims": [
+                {
+                    "text": "the handoff is approved",
+                    "anchor": "approved",
+                    "artifact": "artifact.txt",
+                },
+                {
+                    "text": "the artifact is the handoff",
+                    "anchor": "handoff",
+                    "artifact": "artifact.txt",
+                },
+            ],
+            "confidence": "medium",
+            "unknowns": [],
         },
         root,
     )
