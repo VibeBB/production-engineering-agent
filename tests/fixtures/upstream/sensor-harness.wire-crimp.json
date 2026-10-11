@@ -1,0 +1,40 @@
+{
+  "artifact_kind": "wire_crimp",
+  "conditions": [
+    {
+      "applicator": "AP-SXH-01",
+      "crimp_height_mm": 0.9,
+      "crimp_height_tol_mm": 0.03,
+      "ends": [
+        "W1:a",
+        "W1:b",
+        "W2:a",
+        "W2:b"
+      ],
+      "gauge_mm2": 0.5,
+      "id": "CC1",
+      "pull_force_min_n": 30.0,
+      "source": "terminal application specification rev C",
+      "terminal": "SXH-001T-P0.6"
+    },
+    {
+      "applicator": "AP-SXH-01",
+      "crimp_height_mm": 0.85,
+      "crimp_height_tol_mm": 0.03,
+      "ends": [
+        "W3:a",
+        "W3:b"
+      ],
+      "gauge_mm2": 0.35,
+      "id": "CC2",
+      "pull_force_min_n": 20.0,
+      "source": "terminal application specification rev C",
+      "terminal": "SXH-001T-P0.6"
+    }
+  ],
+  "contract_id": "WH-0001",
+  "contract_sha256": "dcbf973428cc39c212bc10f698d6a301d8d0dd9516f105ef599b5f116e09f243",
+  "schema_version": 1,
+  "unknown": [],
+  "verdict": "pass"
+}

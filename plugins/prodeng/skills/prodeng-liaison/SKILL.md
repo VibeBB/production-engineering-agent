@@ -23,7 +23,7 @@ package.
 ## Inbound artifacts
 
 `import <contract> --from <kind> <file>` accepts
-`circuit-brief`, `circuit-connectivity`, `circuit-assembly`, `mech-envelope`, `mech-appearance`, `wire-contract`,
+`circuit-brief`, `circuit-connectivity`, `circuit-assembly`, `mech-envelope`, `mech-appearance`, `wire-contract`, `wire-crimp`,
 `ux-contract`, `fpga-production`, and `firmware-production`. The importer stores a normalized system/kind, source
 path, SHA-256, and extracted facts; reimporting the same `(system, path)`
 replaces that record. `imports.fresh` checks the file relative to the

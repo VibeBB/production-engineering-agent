@@ -108,6 +108,7 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
                     "mech-envelope",
                     "mech-appearance",
                     "wire-contract",
+                    "wire-crimp",
                     "ux-contract",
                     "fpga-production",
                     "firmware-production",

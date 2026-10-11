@@ -12,6 +12,7 @@ changes.
 | Circuit design | `circuit-brief` | Part references, net names, and connector references. |
 | Circuit connectivity | `circuit-connectivity` | Net references and connector references used by test-access checks. |
 | Circuit assembly | `circuit-assembly` | Populated (non-DNP) part references; the strict `CircuitAssemblySource` mirror is re-validated by the gate. |
+| Wire crimp table | `wire-crimp` | No extracted lists; the strict `WireCrimpSource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
 | Mechanical appearance | `mech-appearance` | Limit sample IDs; the strict `MechAppearanceSource` mirror is re-validated by the gate. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
@@ -72,6 +73,22 @@ unknown. Flashing stays a host-only, human-confirmed station step.
 
 Intake photos are materialized by the attachment hook
 for review; they are not contract import kinds.
+
+## Wire crimp handoff
+
+wire-agent writes `<contract_id>.wire-crimp.json` (`python -m wire crimp`):
+each crimp condition (terminal, wire gauge, crimp height and tolerance,
+minimum pull force, applicator, cited application specification) with the
+wire ends it crimps. Bind a variable characteristic to a condition with
+`crimp: {condition, quantity}` — `crimp_height` in mm or `pull_force` in N.
+`wire.crimp` emits one check per condition and quantity
+(`CC1:crimp_height`, `CC1:pull_force`) and fails when no characteristic
+controls it, when its limits are looser than the table (height outside
+nominal ± tolerance, pull-force LSL below the minimum) or when it is not
+inspected on a `harness` operation; a characteristic bound to a condition
+the table does not hold fails. A changed or malformed artifact fails; a
+missing artifact or an incomplete wire table (`verdict: fail`) is
+`unknown`.
 
 ## Simulation predictions
 

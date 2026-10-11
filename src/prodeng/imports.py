@@ -19,6 +19,7 @@ ImportKind = Literal[
     "mech-envelope",
     "mech-appearance",
     "wire-contract",
+    "wire-crimp",
     "ux-contract",
     "fpga-production",
     "firmware-production",
@@ -32,6 +33,7 @@ IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "mech-envelope": "mech",
     "mech-appearance": "mech",
     "wire-contract": "wire",
+    "wire-crimp": "wire",
     "ux-contract": "ux",
     "fpga-production": "fpga",
     "firmware-production": "firmware",
@@ -213,6 +215,43 @@ class CircuitAssemblySource(BaseModel):
         return [item for item in self.placements if not item.dnp]
 
 
+class CrimpConditionMirror(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(pattern=r"^CC[0-9]+$")
+    terminal: str = Field(min_length=1)
+    gauge_mm2: float = Field(gt=0)
+    crimp_height_mm: float = Field(gt=0)
+    crimp_height_tol_mm: float = Field(gt=0)
+    pull_force_min_n: float = Field(gt=0)
+    applicator: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    ends: list[str]
+
+
+class WireCrimpSource(BaseModel):
+    """Strict mirror of wire-agent's ``<contract_id>.wire-crimp.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_kind: Literal["wire_crimp"]
+    schema_version: Literal[1]
+    contract_id: str = Field(min_length=1)
+    contract_sha256: str = Field(pattern=_SHA256)
+    conditions: list[CrimpConditionMirror]
+    unknown: list[str]
+    verdict: Literal["pass", "fail"]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> WireCrimpSource:
+        if (self.verdict == "pass") == bool(self.unknown):
+            raise ValueError("verdict and unknown disagree")
+        ids = [item.id for item in self.conditions]
+        if len(set(ids)) != len(ids):
+            raise ValueError("crimp condition ids repeat")
+        return self
+
+
 class FirmwareProductionSource(BaseModel):
     """Strict mirror of firmware-agent's ``<name>.fw-production.json``.
 
@@ -305,6 +344,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
         except ValidationError as exc:
             raise ValueError(f"malformed mech-appearance artifact: {exc}") from exc
         return ImportedData(limit_samples=[sample.id for sample in appearance.samples])
+    if kind == "wire-crimp":
+        try:
+            WireCrimpSource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed wire-crimp artifact: {exc}") from exc
+        return ImportedData()
     if kind == "wire-contract":
         return ImportedData(
             parts=_strings(_objects(payload, "wires"), "id"),

@@ -11,12 +11,14 @@ from typing import Literal, cast
 
 from pydantic import ValidationError
 
-from .contract import Characteristic, ImportRef, Inspection, ProdengContract
+from .contract import CRIMP_UNITS, Characteristic, ImportRef, Inspection, ProdengContract
 from .imports import (
     CircuitAssemblySource,
+    CrimpConditionMirror,
     FirmwareProductionSource,
     FpgaProductionSource,
     MechAppearanceSource,
+    WireCrimpSource,
 )
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
@@ -373,6 +375,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.extend(_appearance_checks(contract, imported, contract_dir))
         if imported.kind == "circuit-assembly":
             checks.extend(_assembly_checks(contract, imported, contract_dir))
+        if imported.kind == "wire-crimp":
+            checks.extend(_crimp_checks(contract, imported, contract_dir))
 
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
@@ -559,6 +563,101 @@ def _assembly_checks(
                 else f"no operation places {', '.join(sorted(refs))}",
             )
         )
+    return checks
+
+
+def _crimp_limit_problem(
+    characteristic: Characteristic, condition: CrimpConditionMirror, quantity: str
+) -> str | None:
+    lsl, usl = characteristic.lsl, characteristic.usl
+    if quantity == "pull_force":
+        if lsl is None or lsl < condition.pull_force_min_n - 1e-9:
+            return f"{characteristic.id} lsl {lsl} below {condition.pull_force_min_n:g} N"
+        return None
+    low = condition.crimp_height_mm - condition.crimp_height_tol_mm
+    high = condition.crimp_height_mm + condition.crimp_height_tol_mm
+    if lsl is None or usl is None or lsl < low - 1e-9 or usl > high + 1e-9:
+        return f"{characteristic.id} [{lsl}, {usl}] mm looser than [{low:g}, {high:g}] mm"
+    return None
+
+
+def _crimp_checks(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> list[GateCheck]:
+    """Every wire crimp condition is held by height and pull-force inspections on a harness op."""
+    gate = "wire.crimp"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return [_check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")]
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return [_check(gate, imported.path, "fail", detail="artifact changed since import")]
+    try:
+        table = WireCrimpSource.model_validate_json(raw)
+    except ValidationError as exc:
+        return [_check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")]
+    if table.verdict != "pass":
+        return [
+            _check(
+                gate,
+                imported.path,
+                "unknown",
+                detail=f"wire crimp table is incomplete: {', '.join(table.unknown)}",
+            )
+        ]
+    operations = {op.id: op for op in contract.operations}
+    characteristics = sorted(contract.characteristics, key=lambda item: item.id)
+    known = {condition.id for condition in table.conditions}
+    checks: list[GateCheck] = [
+        _check(
+            gate,
+            item.id,
+            "fail",
+            detail=f"{item.crimp.condition} is not in {table.contract_id}",
+        )
+        for item in characteristics
+        if item.crimp is not None and item.crimp.condition not in known
+    ]
+    for condition in table.conditions:
+        for quantity in ("crimp_height", "pull_force"):
+            bound = [
+                item
+                for item in characteristics
+                if item.crimp is not None
+                and item.crimp.condition == condition.id
+                and item.crimp.quantity == quantity
+            ]
+            problems: list[str] = []
+            held: list[str] = []
+            for characteristic in bound:
+                problem = _crimp_limit_problem(characteristic, condition, quantity)
+                if problem is not None:
+                    problems.append(problem)
+                inspections = sorted(
+                    inspection.id
+                    for inspection in contract.inspections
+                    if inspection.characteristic == characteristic.id
+                    and operations[inspection.operation].kind == "harness"
+                )
+                if inspections:
+                    held.append(f"{characteristic.id} by {', '.join(inspections)}")
+                else:
+                    problems.append(f"{characteristic.id} is not inspected on a harness operation")
+            if not bound:
+                problems.append(f"no characteristic controls {quantity}")
+            checks.append(
+                _check(
+                    gate,
+                    f"{condition.id}:{quantity}",
+                    "fail" if problems else "pass",
+                    len(condition.ends),
+                    CRIMP_UNITS[quantity],
+                    "; ".join(problems) if problems else "; ".join(held),
+                )
+            )
     return checks
 
 
