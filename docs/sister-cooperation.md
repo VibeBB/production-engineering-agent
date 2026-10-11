@@ -11,6 +11,7 @@ changes.
 | --- | --- | --- |
 | Circuit design | `circuit-brief` | Part references, net names, and connector references. |
 | Circuit connectivity | `circuit-connectivity` | Net references and connector references used by test-access checks. |
+| Circuit assembly | `circuit-assembly` | Populated (non-DNP) part references; the strict `CircuitAssemblySource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
 | Mechanical appearance | `mech-appearance` | Limit sample IDs; the strict `MechAppearanceSource` mirror is re-validated by the gate. |
 | Wire design | `wire-contract` | Wire IDs and connector IDs. |
@@ -21,6 +22,17 @@ changes.
 Each import records the workspace-relative source path and SHA-256 in the
 contract. `imports.fresh` fails when a source changes and is unknown if its
 source is missing.
+
+circuit-agent writes `<name>.circuit-assembly.json` from the KiCad board
+(`python -m circuit assembly`): every placed footprint with its side, mount
+attribute (`smd`/`tht`), DNP flag and position. List the board sides each
+`smt`, `tht` or `selective_solder` operation assembles in
+`operations[].sides`. `circuit.assembly` emits one check per populated
+mount/side group (for example `smd:bottom`) and fails when no operation of a
+matching kind covers that side; with a `circuit-brief` import it also fails
+when the board does not place a brief part. A changed or malformed artifact
+fails; a missing artifact, an incomplete circuit export (a part without a
+mount attribute) or a board with no populated parts is unknown.
 
 fpga-agent writes `<design>.fpga-production.json` only after a passing full
 gate run. Bind its device to the `programming` operation that loads it with

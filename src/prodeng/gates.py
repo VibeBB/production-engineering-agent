@@ -12,7 +12,12 @@ from typing import Literal, cast
 from pydantic import ValidationError
 
 from .contract import Characteristic, ImportRef, Inspection, ProdengContract
-from .imports import FirmwareProductionSource, FpgaProductionSource, MechAppearanceSource
+from .imports import (
+    CircuitAssemblySource,
+    FirmwareProductionSource,
+    FpgaProductionSource,
+    MechAppearanceSource,
+)
 from .projections import ftm_spec_bytes
 from .sampling import SamplingPlan, sampling_plan
 
@@ -366,6 +371,8 @@ def _gate_checks(contract: ProdengContract, contract_dir: Path) -> list[GateChec
             checks.append(_firmware_programming_check(contract, imported, contract_dir))
         if imported.kind == "mech-appearance":
             checks.extend(_appearance_checks(contract, imported, contract_dir))
+        if imported.kind == "circuit-assembly":
+            checks.extend(_assembly_checks(contract, imported, contract_dir))
 
     for characteristic in sorted(contract.characteristics, key=lambda item: item.id):
         if characteristic.simulation is not None:
@@ -477,6 +484,82 @@ def _fpga_programming_check(
         artifact.bitstream_sha256,
         f"{', '.join(operations)} runs: {' '.join(artifact.argv)}",
     )
+
+
+_ASSEMBLY_OPERATIONS: dict[str, tuple[str, ...]] = {
+    "smd": ("smt",),
+    "tht": ("tht", "selective_solder"),
+}
+
+
+def _assembly_checks(
+    contract: ProdengContract, imported: ImportRef, contract_dir: Path
+) -> list[GateCheck]:
+    """Every populated mount/side group of the circuit board has an operation that places it."""
+    gate = "circuit.assembly"
+    path = Path(imported.path)
+    if not path.is_absolute():
+        path = contract_dir / path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        return [_check(gate, imported.path, "unknown", detail=f"artifact unreadable: {exc}")]
+    if hashlib.sha256(raw).hexdigest() != imported.sha256:
+        return [_check(gate, imported.path, "fail", detail="artifact changed since import")]
+    try:
+        board = CircuitAssemblySource.model_validate_json(raw)
+    except ValidationError as exc:
+        return [_check(gate, imported.path, "fail", detail=f"malformed artifact: {exc}")]
+    if board.verdict != "pass":
+        return [
+            _check(
+                gate,
+                imported.path,
+                "unknown",
+                detail=f"circuit export is incomplete: {', '.join(board.unknown)}",
+            )
+        ]
+    groups: dict[tuple[str, str], list[str]] = {}
+    for item in board.populated():
+        if item.mount is not None:
+            groups.setdefault((item.mount, item.side), []).append(item.ref)
+    if not groups:
+        return [_check(gate, imported.path, "unknown", detail="no populated placements")]
+    checks: list[GateCheck] = []
+    placed = {item.ref for item in board.placements}
+    for brief in contract.imports:
+        if brief.kind == "circuit-brief":
+            missing = sorted(set(brief.extracted.parts) - placed)
+            checks.append(
+                _check(
+                    gate,
+                    f"brief:{brief.path}",
+                    "fail" if missing else "pass",
+                    len(missing),
+                    0,
+                    f"board does not place {', '.join(missing)}"
+                    if missing
+                    else "board places every brief part",
+                )
+            )
+    for (mount, side), refs in sorted(groups.items()):
+        kinds = _ASSEMBLY_OPERATIONS[mount]
+        operations = sorted(
+            op.id for op in contract.operations if op.kind in kinds and side in op.sides
+        )
+        checks.append(
+            _check(
+                gate,
+                f"{mount}:{side}",
+                "pass" if operations else "fail",
+                len(refs),
+                f"{'/'.join(kinds)} operation with sides [{side!r}]",
+                f"{', '.join(operations)} places {', '.join(sorted(refs))}"
+                if operations
+                else f"no operation places {', '.join(sorted(refs))}",
+            )
+        )
+    return checks
 
 
 def _ftm_problem(contract: ProdengContract, artifact: FirmwareProductionSource) -> str | None:

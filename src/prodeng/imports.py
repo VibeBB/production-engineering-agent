@@ -15,6 +15,7 @@ from .contract import ImportedData, ImportRef, ProdengContract
 ImportKind = Literal[
     "circuit-brief",
     "circuit-connectivity",
+    "circuit-assembly",
     "mech-envelope",
     "mech-appearance",
     "wire-contract",
@@ -27,6 +28,7 @@ ImportSystem = Literal["circuit", "mech", "wire", "ux", "fpga", "firmware"]
 IMPORT_SYSTEMS: dict[ImportKind, ImportSystem] = {
     "circuit-brief": "circuit",
     "circuit-connectivity": "circuit",
+    "circuit-assembly": "circuit",
     "mech-envelope": "mech",
     "mech-appearance": "mech",
     "wire-contract": "wire",
@@ -164,6 +166,53 @@ class FpgaProductionSource(BaseModel):
         return self
 
 
+class AssemblyPlacement(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    ref: str = Field(min_length=1)
+    lib_id: str
+    value: str | None
+    side: Literal["top", "bottom"]
+    mount: Literal["smd", "tht"] | None
+    dnp: bool
+    x_mm: float
+    y_mm: float
+    rotation_deg: float
+
+
+class AssemblyPcb(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    path: str = Field(min_length=1)
+    sha256: str = Field(pattern=_SHA256)
+
+
+class CircuitAssemblySource(BaseModel):
+    """Strict mirror of circuit-agent's ``<name>.circuit-assembly.json``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    artifact_kind: Literal["circuit_assembly"]
+    schema_version: Literal[1]
+    frame: Literal["board_center_y_up_mm"]
+    pcb: AssemblyPcb
+    placements: list[AssemblyPlacement]
+    unknown: list[str]
+    verdict: Literal["pass", "fail"]
+
+    @model_validator(mode="after")
+    def _consistent(self) -> CircuitAssemblySource:
+        if (self.verdict == "pass") == bool(self.unknown):
+            raise ValueError("verdict and unknown disagree")
+        refs = [item.ref for item in self.placements]
+        if self.verdict == "pass" and len(set(refs)) != len(refs):
+            raise ValueError("placement references repeat")
+        return self
+
+    def populated(self) -> list[AssemblyPlacement]:
+        return [item for item in self.placements if not item.dnp]
+
+
 class FirmwareProductionSource(BaseModel):
     """Strict mirror of firmware-agent's ``<name>.fw-production.json``.
 
@@ -242,6 +291,12 @@ def extract_import(kind: str, payload: dict[str, object]) -> ImportedData:
             nets=_strings(_objects(payload, "nets"), "ref"),
             connectors=_strings(_objects(payload, "connectors"), "ref"),
         )
+    if kind == "circuit-assembly":
+        try:
+            board = CircuitAssemblySource.model_validate(payload)
+        except ValidationError as exc:
+            raise ValueError(f"malformed circuit-assembly artifact: {exc}") from exc
+        return ImportedData(parts=sorted({item.ref for item in board.populated()}))
     if kind == "mech-envelope":
         return ImportedData(anchors=_strings(_objects(payload, "anchors"), "name"))
     if kind == "mech-appearance":
