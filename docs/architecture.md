@@ -50,6 +50,7 @@ produces fail; with no failures, any unknown produces unknown.
 | `packaging.mass` | Product | Gross carton mass `units × unit_mass_kg + packaging_mass_kg` ≤ `max_gross_kg` (cited handling limit). |
 | `packaging.stack` | Product | With `pallet`: `(layers − 1) × gross × g × safety_factor` ≤ the supplier `box_compression_n`. |
 | `packaging.operation` | Product | At least one `packing` operation packs the carton. |
+| `packaging.oobe` | Product | With `packaging.contents` or a `ux-contract` import: the single pinned UX contract's `oobe.in_box` items are each packed once by a `packing` operation, nothing else is packed, and an item UX lists earlier (needed earlier in the out-of-box experience) is never in a lower layer than a later one (layer 1 = top). No UX import or no `oobe.in_box` is `unknown`; stale, ambiguous or malformed UX contracts and missing `contents` fail. |
 | `msa.resolution` | MSA | A declared inspection `gauge` resolves at least a tenth of the characteristic tolerance (`usl - lsl`); one-sided tolerances are unknown and a gauge on an attribute characteristic fails. |
 | `msa.grr` | MSA | A declared gauge %GRR is at most 10 % for critical and 30 % for major/minor characteristics (AIAG MSA). |
 | `capability.cpk_target` | Capability | A declared `cpk_min` is at least 1.67 for critical and 1.33 for major/minor characteristics (AIAG PPAP). Measured Cpk is outside VibeBB; this pins the target the control plan holds the process to. |

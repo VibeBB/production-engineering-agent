@@ -146,3 +146,93 @@ def test_invalid_packaging_is_rejected(changes: dict[str, Any]) -> None:
     data["packaging"] = {**PACKAGING, **changes}
     with pytest.raises(ValidationError):
         ProdengContract.model_validate(data)
+
+
+IN_BOX = [
+    {"id": "guide", "name": "Quick start", "kind": "document", "first_used_state": "idle"},
+    {"id": "kettle", "name": "Kettle", "kind": "product"},
+    {"id": "base", "name": "Power base", "kind": "accessory"},
+]
+CONTENTS = [
+    {"id": "guide", "layer": 1, "operation": "OP06"},
+    {"id": "kettle", "layer": 2, "operation": "OP06"},
+    {"id": "base", "layer": 2, "operation": "OP06"},
+]
+
+
+def _with_ux(
+    tmp_path: Path, in_box: list[dict[str, Any]] | None = IN_BOX, **changes: Any
+) -> tuple[ProdengContract, Path]:
+    contract, root = _contract(tmp_path, **changes)
+    path = root / "upstream" / "kettle.ux.json"
+    ux: dict[str, Any] = {"system": "ux", "product": {"surfaces": []}}
+    if in_box is not None:
+        ux["oobe"] = {"in_box": in_box}
+    path.write_text(json.dumps(ux), encoding="utf-8")
+    return import_source(contract, "ux-contract", path, root), root
+
+
+def _oobe(contract: ProdengContract, root: Path) -> GateCheck:
+    return _checks(contract, root)["packaging.oobe"]
+
+
+def test_oobe_contents_in_unboxing_order_pass(tmp_path: Path) -> None:
+    check = _oobe(*_with_ux(tmp_path, contents=CONTENTS))
+    assert check.status == "pass"
+    assert check.detail == "3 items packed in unboxing order"
+
+
+@pytest.mark.parametrize(
+    ("contents", "detail"),
+    [
+        (CONTENTS[:2], "base not packed"),
+        ([*CONTENTS, {"id": "spare", "layer": 3, "operation": "OP06"}], "spare not in the UX box"),
+        (
+            [{**CONTENTS[0], "layer": 3}, *CONTENTS[1:]],
+            "kettle (layer 2) above guide (layer 3)",
+        ),
+        (
+            [{**CONTENTS[0], "operation": "OP01"}, *CONTENTS[1:]],
+            "guide: OP01 is not a packing operation",
+        ),
+    ],
+    ids=["missing", "extra", "order", "operation"],
+)
+def test_oobe_contents_mismatch_fails(
+    tmp_path: Path, contents: list[dict[str, Any]], detail: str
+) -> None:
+    check = _oobe(*_with_ux(tmp_path, contents=contents))
+    assert check.status == "fail"
+    assert check.detail == detail
+
+
+def test_oobe_without_contents_or_ux_list(tmp_path: Path) -> None:
+    assert _oobe(*_with_ux(tmp_path)).detail == "packaging.contents missing"
+    assert _oobe(*_with_ux(tmp_path / "b", in_box=None, contents=CONTENTS)).status == "unknown"
+    contract, root = _contract(tmp_path / "c", contents=CONTENTS)
+    assert _oobe(contract, root).status == "unknown"
+    contract, root = _contract(tmp_path / "d")
+    assert "packaging.oobe" not in _checks(contract, root)
+
+
+def test_oobe_stale_ambiguous_and_malformed_ux(tmp_path: Path) -> None:
+    contract, root = _with_ux(tmp_path, contents=CONTENTS)
+    path = root / "upstream" / "kettle.ux.json"
+    path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    assert _oobe(contract, root).status == "fail"
+    malformed, root2 = _with_ux(tmp_path / "m", in_box=[{"name": "no id"}], contents=CONTENTS)
+    assert _oobe(malformed, root2).detail == "malformed oobe.in_box"
+    other = root2 / "upstream" / "other.ux.json"
+    shutil.copyfile(root2 / "upstream" / "kettle.ux.json", other)
+    ambiguous = import_source(malformed, "ux-contract", other, root2)
+    assert _oobe(ambiguous, root2).status == "fail"
+
+
+def test_duplicate_contents_rejected() -> None:
+    with pytest.raises(ValidationError):
+        ProdengContract.model_validate(
+            {
+                **json.loads((EXAMPLE / "smart-kettle.prodeng.json").read_text(encoding="utf-8")),
+                "packaging": {**PACKAGING, "contents": [CONTENTS[0], CONTENTS[0]]},
+            }
+        )
