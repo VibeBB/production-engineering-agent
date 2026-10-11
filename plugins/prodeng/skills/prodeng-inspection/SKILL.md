@@ -34,6 +34,20 @@ as a fallback.
   and JIS Z 9015-1 are the sampling references; do not substitute an
   approximate sample count.
 
+## Boundary vectors for the test station
+
+- Give every variable inspection a `gauge` (resolution from the gauge
+  datasheet). `out/<product>/boundary-vectors.json` then lists, for each
+  declared limit `L`, the stimuli `L - r`, `L` and `L + r` and the verdict
+  the station must return (3-value boundary value analysis). Gauge-less
+  inspections appear under `unsized`; treat them as untested limits.
+- Hand the vectors to whoever implements the limit comparison: firmware
+  unit tests (`unit_tests`, gcov C1 floors), dashboard factory-test checks,
+  or the fixture's test program. A station that passes `L - r` on a lower
+  limit or rejects `L` has an off-by-one comparison.
+- The vectors are a projection of the contract; never edit them by hand and
+  never widen a limit to make a vector pass.
+
 ## Method placement
 
 Select methods that match the characteristic and process station:

@@ -87,6 +87,11 @@ writer behavior are detailed in [Records and vision](records-and-vision.md).
 - `control-plan.csv`
 - `inspection-plan.json`
 - `sampling-plans.json`
+- `boundary-vectors.json` — for every variable inspection with a `gauge`,
+  3-value boundary stimuli at each declared limit (`L - resolution`, `L`,
+  `L + resolution`) and the verdict the test station must return; gauge-less
+  variable inspections are listed in `unsized`. Firmware and dashboard test
+  code use these cases to prove the station's limit comparisons.
 - `line-balance.csv`
 - `pfmea.csv`
 - `work-instructions.md`

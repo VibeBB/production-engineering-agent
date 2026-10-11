@@ -8,6 +8,7 @@
     "**/control-plan.csv",
     "**/inspection-plan.json",
     "**/sampling-plans.json",
+    "**/boundary-vectors.json",
     "**/line-balance.csv",
     "**/pfmea.csv",
     "**/work-instructions.md",

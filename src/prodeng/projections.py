@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .contract import Inspection, Operation, ProdengContract
+from .contract import Characteristic, Inspection, Operation, ProdengContract
 from .sampling import sampling_plan
 
 
@@ -415,6 +415,58 @@ def _write_ftm(contract: ProdengContract, out_dir: Path) -> None:
     )
 
 
+def boundary_vectors(contract: ProdengContract) -> dict[str, Any]:
+    """3-value boundary stimuli per gauged variable inspection.
+
+    Each declared limit L gets L - r, L and L + r (r = gauge resolution, the
+    smallest step the station can tell apart) with the verdict the test
+    station must return. Inspections without a gauge are listed as unsized.
+    """
+    characteristics = {item.id: item for item in contract.characteristics}
+    vectors: list[dict[str, Any]] = []
+    unsized: list[str] = []
+    for inspection in sorted(contract.inspections, key=lambda item: item.id):
+        characteristic = characteristics.get(inspection.characteristic)
+        if characteristic is None or characteristic.kind != "variable":
+            continue
+        if inspection.gauge is None:
+            unsized.append(inspection.id)
+            continue
+        step = inspection.gauge.resolution
+        cases: list[dict[str, Any]] = []
+        for side, limit in (("lsl", characteristic.lsl), ("usl", characteristic.usl)):
+            if limit is None:
+                continue
+            for offset in (-1, 0, 1):
+                inside = offset >= 0 if side == "lsl" else offset <= 0
+                value = round(limit + offset * step, 12)
+                if not _within(characteristic, value):
+                    inside = False
+                cases.append(
+                    {"limit": side, "value": value, "expect": "pass" if inside else "fail"}
+                )
+        vectors.append(
+            {
+                "inspection_id": inspection.id,
+                "characteristic_id": characteristic.id,
+                "operation_id": inspection.operation,
+                "unit": characteristic.unit,
+                "lsl": characteristic.lsl,
+                "usl": characteristic.usl,
+                "step": step,
+                "step_source": inspection.gauge.source,
+                "ftm_commands": sorted(inspection.ftm_commands),
+                "cases": cases,
+            }
+        )
+    return {"schema_version": 1, "vectors": vectors, "unsized": unsized}
+
+
+def _within(characteristic: Characteristic, value: float) -> bool:
+    low, high = characteristic.lsl, characteristic.usl
+    return (low is None or value >= low) and (high is None or value <= high)
+
+
 def _write_manifest(contract: ProdengContract, out_dir: Path, name: str) -> None:
     files = sorted(
         path.name
@@ -461,6 +513,7 @@ def write_projections(contract: ProdengContract, name: str, out_dir: Path) -> di
     control_path = out_dir / "control-plan.csv"
     _write_control_plan(contract, control_path)
     _write_inspection_plan(contract, out_dir)
+    _json_write(out_dir / "boundary-vectors.json", boundary_vectors(contract))
     line_path = out_dir / "line-balance.csv"
     _write_line_balance(contract, line_path)
     pfmea_path = out_dir / "pfmea.csv"
@@ -474,6 +527,7 @@ def write_projections(contract: ProdengContract, name: str, out_dir: Path) -> di
         "control_plan": control_path,
         "inspection_plan": out_dir / "inspection-plan.json",
         "sampling_plans": out_dir / "sampling-plans.json",
+        "boundary_vectors": out_dir / "boundary-vectors.json",
         "line_balance": line_path,
         "pfmea": pfmea_path,
         "work_instructions": work_path,

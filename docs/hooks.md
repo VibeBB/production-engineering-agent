@@ -45,6 +45,7 @@ silently run a different plugin implementation.
 `records_dir` to `observations/prodeng`. Stop enforcement recognizes these
 artifact patterns: `**/*.prodeng.json`, `**/*.prodeng-request.json`,
 `**/control-plan.csv`, `**/inspection-plan.json`, `**/sampling-plans.json`,
+`**/boundary-vectors.json`,
 `**/line-balance.csv`, `**/pfmea.csv`, `**/work-instructions.md`,
 `**/factory-test-spec.json`, `**/factory-test-spec.md`,
 `**/prodeng-report.json`, `**/prodeng-report.md`, `**/renders/*.png`, and
