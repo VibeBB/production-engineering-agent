@@ -12,6 +12,7 @@ changes.
 | Circuit design | `circuit-brief` | Part references, net names, and connector references. |
 | Circuit connectivity | `circuit-connectivity` | Net references and connector references used by test-access checks. |
 | Circuit assembly | `circuit-assembly` | Populated (non-DNP) part references; the strict `CircuitAssemblySource` mirror is re-validated by the gate. |
+| Circuit part handling | `circuit-handling` | Handled part references; the strict `CircuitHandlingSource` mirror is re-validated by the gate. |
 | Wire crimp table | `wire-crimp` | No extracted lists; the strict `WireCrimpSource` mirror is re-validated by the gate. |
 | Wire formboard | `wire-formboard` | No extracted lists; the strict `WireFormboardSource` mirror is re-validated by the gate. |
 | Mechanical design | `mech-envelope` | Named mechanical anchors. |
@@ -36,6 +37,16 @@ matching kind covers that side; with a `circuit-brief` import it also fails
 when the board does not place a brief part. A changed or malformed artifact
 fails; a missing artifact, an incomplete circuit export (a part without a
 mount attribute) or a board with no populated parts is unknown.
+
+circuit-agent writes `<name>.circuit-handling.json` from the brief part
+`handling` facts (`python -m circuit handling`): MSL, peak reflow temperature,
+ESD sensitivity and the datasheet source. `circuit.handling` emits `esd`
+(every `smt`/`tht`/`selective_solder` operation is `esd_sensitive` when any part
+is), one `reflow:<OP>` check per `smt` operation (`reflow_peak_c` at or below
+the coolest part rating, because every part rides through each reflow pass;
+missing is unknown) and `msl` (every `smt` operation has `floor_life_control`
+when any part is above MSL 1). A changed or malformed artifact fails; a missing
+artifact or an export with parts lacking handling facts is unknown.
 
 fpga-agent writes `<design>.fpga-production.json` only after a passing full
 gate run. Bind its device to the `programming` operation that loads it with

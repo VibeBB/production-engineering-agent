@@ -105,6 +105,7 @@ _SCHEMAS: dict[str, dict[str, Any]] = {
                     "circuit-brief",
                     "circuit-connectivity",
                     "circuit-assembly",
+                    "circuit-handling",
                     "mech-brief",
                     "mech-envelope",
                     "mech-appearance",
