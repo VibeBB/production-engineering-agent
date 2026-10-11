@@ -555,7 +555,7 @@ def _appearance_checks(
                 (
                     inspection
                     for inspection in contract.inspections
-                    if needed <= set(inspection.limit_samples)
+                    if needed.issubset(inspection.limit_samples)
                 ),
                 key=lambda item: item.id,
             )
