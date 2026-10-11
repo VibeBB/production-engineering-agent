@@ -11,12 +11,12 @@ Its top-level fields are:
 | `product` | Lowercase product slug, revision, optional description. |
 | `volume` | Annual demand, working days, shifts, available minutes per shift, lot size; takt is derived from these values. |
 | `requirements` | Requirement, assumption, and question records with IDs, text, kind, and open/resolved status. |
-| `characteristics` | Product characteristics with classification, variable/attribute kind, measurement limits or acceptance criterion, unit, sources, and an optional `simulation` prediction (`report_path`, `sha256`, `check_id` of a simulation-agent `sim-report.json` check; variable characteristics only). |
+| `characteristics` | Product characteristics with classification, variable/attribute kind, measurement limits or acceptance criterion, unit, sources, and an optional `simulation` prediction (`report_path`, `sha256`, `check_id` of a simulation-agent `sim-report.json` check; variable characteristics only). A characteristic may carry `crimp` (`condition` `CC<n>`, `quantity` `crimp_height` in mm or `pull_force` in N; variable only) to control a wire-agent crimp condition. |
 | `operations` | Ordered process operations with station, cycle time, operators, tools/fixtures, safety data, TWI work elements, and `programs` (device references from `fpga-production` or `firmware-production` imports, only on `programming` operations; each device from exactly one import) and `sides` (`top`/`bottom` board sides an `smt`, `tht` or `selective_solder` operation assembles). |
 | `inspections` | Characteristic and operation links, inspection method, sampling, equipment, reaction plan, and optional FTM command references, and `limit_samples` (IDs from a `mech-appearance` import; `visual` inspections only, unique). |
 | `failure_modes` | PFMEA operation, mode/effect/cause, severity/occurrence/detection scores, and linked controls. |
 | `factory_test_mode` | Optional entry conditions, field lockout, interface/nets, commands/timeouts, provisioning, exit, and duration budget. |
-| `imports` | Supported sibling source kind (including `circuit-assembly`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
+| `imports` | Supported sibling source kind (including `circuit-assembly`, `wire-crimp`, `mech-appearance`, `fpga-production` and `firmware-production`), relative path, SHA-256, and extracted nets/parts/connectors/anchors/surfaces/limit samples. |
 
 Model validators enforce ID prefixes, references, mutually consistent
 limits, required characteristic inputs, valid AQL/levels, and FTM

@@ -63,6 +63,16 @@ class SimPrediction(FrozenModel):
     check_id: str = Field(min_length=1)
 
 
+class CrimpBinding(FrozenModel):
+    """The wire-agent crimp condition quantity a characteristic controls."""
+
+    condition: str = Field(pattern=r"^CC[0-9]+$")
+    quantity: Literal["crimp_height", "pull_force"]
+
+
+CRIMP_UNITS = {"crimp_height": "mm", "pull_force": "N"}
+
+
 class Characteristic(FrozenModel):
     id: str = Field(pattern=r"^CH-[0-9]{2,4}$")
     description: str = Field(min_length=1)
@@ -75,11 +85,19 @@ class Characteristic(FrozenModel):
     criterion: str = ""
     sources: list[str] = Field(min_length=1)
     simulation: SimPrediction | None = None
+    crimp: CrimpBinding | None = None
 
     @model_validator(mode="after")
     def validate_type_requirements(self) -> Characteristic:
         if self.simulation is not None and self.kind != "variable":
             raise ValueError(f"{self.id} simulation prediction requires a variable characteristic")
+        if self.crimp is not None and (
+            self.kind != "variable" or self.unit != CRIMP_UNITS[self.crimp.quantity]
+        ):
+            raise ValueError(
+                f"{self.id} {self.crimp.quantity} binding requires a variable characteristic "
+                f"in {CRIMP_UNITS[self.crimp.quantity]}"
+            )
         if self.lsl is not None and self.usl is not None and self.lsl > self.usl:
             raise ValueError(f"{self.id} lsl must be <= usl")
         if self.nominal is not None and self.lsl is not None and self.nominal < self.lsl:
@@ -254,6 +272,7 @@ class ImportRef(FrozenModel):
             "mech-envelope",
             "mech-appearance",
             "wire-contract",
+            "wire-crimp",
             "ux-contract",
             "fpga-production",
             "firmware-production",
