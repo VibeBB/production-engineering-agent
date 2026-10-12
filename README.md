@@ -100,7 +100,7 @@ behind the plan; they never change a deterministic gate verdict.
 ## Developer quickstart
 
 The package supports Python 3.12 or newer; the current repository
-development setup uses Python 3.14+ and uv 0.12.23:
+development setup uses Python 3.14+ and uv 0.13.0:
 
 ```bash
 uv sync --all-groups
@@ -190,7 +190,7 @@ OpenHands ベースのワークスペースに
 ## 開発者向けクイックスタート
 
 パッケージは Python 3.12 以降に対応しています。現在のリポジトリ開発環境は
-Python 3.14 以降と uv 0.12.23 を使用します。
+Python 3.14 以降と uv 0.13.0 を使用します。
 
 ```bash
 uv sync --all-groups

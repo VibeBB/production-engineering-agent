@@ -5,6 +5,15 @@ retains the image, launcher, release, and troubleshooting procedures; the
 new [Development](development.md) and [Commands](commands.md) guides cover
 verification and user-facing entry points.
 
+## 2026-10-12 dependency sweep (sdk 1.54.0, uv 0.13.0)
+
+| Component | From -> to | Changelog review decision |
+| --- | --- | --- |
+| openhands-sdk / openhands-tools | 1.53.0 -> 1.54.0 | See `docs/research/sdk-v1.54.0-feature-evaluation.md`. |
+| uv | 0.12.23 -> 0.13.0 | Breaking-change review in the same document; `[tool.uv] required-version` and Dockerfile ARG updated. |
+| hypothesis | 6.168.5 -> 6.169.0 | Lock refresh picks the newest release; property-based test surface unchanged. |
+| python-version (all surfaces) | deferred | 3.15 blocked solely by `openhands-sdk->litellm->fastuuid 0.14.0` (sdist-only, bundled PyO3 fails to build on 3.15; pydantic-core 2.50.1 already ships cp315 wheels). Wildcard deferral `python-version/*`, review_by 2027-01-08. |
+
 ## Authoring, renders, and records
 
 The source of truth is the contract. Use `prodeng author` to validate it,
@@ -43,7 +52,7 @@ locally present image, and `--warn` doctor paths never verify.
 
 ## Local development
 
-Use Python 3.14+ and uv 0.12.23:
+Use Python 3.14+ and uv 0.13.0:
 
 ```bash
 uv sync --all-groups
