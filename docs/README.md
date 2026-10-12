@@ -48,6 +48,8 @@
   OpenHands SDK/tools, uv, and deferral decisions.
 - [SDK v1.52.0 feature evaluation](research/sdk-v1.52.0-feature-evaluation.md):
   OpenHands SDK/tools adoption decisions.
+- [SDK v1.54.0 feature evaluation](research/sdk-v1.54.0-feature-evaluation.md):
+  Changelog review for SDK 1.54.0 and uv 0.13.0.
 - [SDK v1.53.0 feature evaluation](research/sdk-v1.53.0-feature-evaluation.md):
   OpenHands SDK/tools adoption decisions.
 - [Agent Canvas v1.25 feature evaluation](research/ac-v1.25-feature-evaluation.md):
