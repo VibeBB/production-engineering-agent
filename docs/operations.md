@@ -5,6 +5,20 @@ retains the image, launcher, release, and troubleshooting procedures; the
 new [Development](development.md) and [Commands](commands.md) guides cover
 verification and user-facing entry points.
 
+## 2026-10-18 dependency sweep (sdk 1.55.1, uv 0.13.1, pillow 13.0.0, hypothesis 6.170.1)
+
+| Component | From -> to | Changelog review decision |
+| --- | --- | --- |
+| openhands-sdk / openhands-tools | `==1.54.0` -> `==1.55.1` | Adopted; see [SDK v1.55.1 evaluation](research/sdk-v1.55.1-feature-evaluation.md). |
+| uv | `==0.13.0` -> `==0.13.1` | Adopted. |
+| zizmor | `1.30.1` -> `1.31.1` | Adopted. |
+| trivy | `v0.75.0` -> `v0.76.0` | Adopted. |
+| codeql-action | v4.38.3 -> v4.39.0 | Adopted. |
+| pillow | 12.x -> 13.0.0 (lock) | Adopted — render.py uses only Image/ImageDraw/ImageFont (no 13.0 breaking APIs). |
+| hypothesis | -> 6.170.1 (lock) | Adopted. |
+
+Deferrals unchanged (mcp 2.x, Python 3.15 default); reasons refreshed.
+
 ## 2026-10-12 dependency sweep (sdk 1.54.0, uv 0.13.0)
 
 | Component | From -> to | Changelog review decision |
