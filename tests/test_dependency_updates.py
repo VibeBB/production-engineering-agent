@@ -112,9 +112,9 @@ def test_workflow_download_pins_and_checksums(tmp_path: Path) -> None:
     by_name = {status.name: status for status in statuses}
     assert by_name["rhysd/actionlint"].current == "v1.7.12"
     assert by_name["rhysd/actionlint"].outdated is True
-    assert by_name["zizmor"].current == "1.30.1"
+    assert by_name["zizmor"].current == "1.31.1"
     assert by_name["zizmor"].latest == "99.0.0"
-    assert by_name["aquasecurity/trivy"].current == "v0.75.0"
+    assert by_name["aquasecurity/trivy"].current == "v0.76.0"
     assert by_name["aquasecurity/trivy"].outdated is True
     assert by_name["actionlint download checksum"].outdated is False
     assert by_name["zizmor download checksum"].outdated is False
