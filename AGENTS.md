@@ -31,6 +31,9 @@ manufacturing-plan source of truth.
   and the product certification procedure. Do not invent voltages, leakage
   limits, bond resistance limits, or rework acceptance.
 - Do not write secrets into contracts, logs, test fixtures, or commits.
+- Version expectations and pins in source code must derive from files
+  the dependency-update checker covers (pyproject pins, lockfiles,
+  Dockerfiles, workflow pins); do not hardcode a second copy.
 
 ## Layout and plugin boundary
 
