@@ -1,12 +1,12 @@
 {
   "prodeng_tools": {
-    "attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/61329460",
-    "digest": "sha256:7d4ae906b2caa7a04da3dcc4dffb259aae653ef5bc365f3572a467f424a4db1f",
+    "attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/61364512",
+    "digest": "sha256:2b60be522df5a6d742fec59deb8f30187a5d96f201bd11ffdcae19c76f70d053",
     "dockerfile": "docker/prodeng-tools.Dockerfile",
     "image": "ghcr.io/vibebb/prodeng-tools",
-    "published_at": "2026-10-29T14:27:09Z",
-    "sbom_attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/61330304",
-    "tag": "ab852e6c4ee1b49c20b3e9fd37d0775ae60954f6-tools",
+    "published_at": "2026-10-29T15:47:32Z",
+    "sbom_attestation": "https://github.com/VibeBB/production-engineering-agent/attestations/61365370",
+    "tag": "1800664cf10cbf01f965ce44fe15c06b1aae8efe-tools",
     "tools": {
       "git": "2.47.3",
       "prodeng": "0.1.0",
@@ -14,6 +14,6 @@
       "python": "Python 3.14.10",
       "uv": "0.13.6 (x86_64-unknown-linux-musl)"
     },
-    "workflow_run": "https://github.com/VibeBB/production-engineering-agent/actions/runs/40890885387"
+    "workflow_run": "https://github.com/VibeBB/production-engineering-agent/actions/runs/40904140675"
   }
 }
