@@ -5,6 +5,24 @@ retains the image, launcher, release, and troubleshooting procedures; the
 new [Development](development.md) and [Commands](commands.md) guides cover
 verification and user-facing entry points.
 
+## 2026-10-29 dependency sweep (sdk 1.59.0, uv 0.13.6, hypothesis 6.170.13)
+
+| Component | From -> to | Changelog review decision |
+| --- | --- | --- |
+| openhands-sdk / openhands-tools | `==1.55.1` -> `==1.59.0` | Adopted; see [SDK v1.59.0 evaluation](research/sdk-v1.59.0-feature-evaluation.md). |
+| uv | `==0.13.1` -> `==0.13.6` | Adopted. |
+| pytest | `9.1.1` -> `9.2.0` (lock) | Adopted. |
+| ruff | `0.17.0` -> `0.17.3` (lock) | Adopted. |
+| hypothesis | `6.170.1` -> `6.170.13` (lock) | Adopted — hypothesis health-check and shrink-loop fixes only. |
+| trivy | `v0.76.0` -> `v0.76.1` | Adopted. |
+| codeql-action | v4.39.0 -> v4.39.1 | Adopted. |
+| harden-runner | v2.22.1 -> v2.22.3 | Adopted. |
+| setup-uv | v10.3.0 -> v10.3.3 | Adopted. |
+| docker/login-action | v4.6.0 -> v4.7.0 | Adopted. |
+| `debian:13-slim` base | digest re-pinned | Adopted. |
+
+Deferrals unchanged (mcp 2.x, Python 3.15 default); mcp reason refreshed to cite SDK 1.59.0.
+
 ## 2026-10-18 dependency sweep (sdk 1.55.1, uv 0.13.1, pillow 13.0.0, hypothesis 6.170.1)
 
 | Component | From -> to | Changelog review decision |
