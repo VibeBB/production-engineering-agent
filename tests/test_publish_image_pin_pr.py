@@ -275,7 +275,8 @@ def test_publish_workflow_uses_pin_helper_and_sbom_guard() -> None:
     # daemon under a dry_run rehearsal.
     assert (
         "SYFT_SOURCE_IMAGE_DEFAULT_PULL_SOURCE: "
-        "${{ inputs.dry_run == true && 'docker' || 'registry' }}" in workflow
+        "${{ (inputs.dry_run == true || github.event_name == 'pull_request') "
+        "&& 'docker' || 'registry' }}" in workflow
     )
     assert "TMPDIR: ${{ runner.temp }}" in workflow
     assert "SYFT_FILE_METADATA_SELECTION: none" in workflow
@@ -300,9 +301,13 @@ def test_publish_dry_run_skips_only_irreversible_steps() -> None:
         "Update digest lock and merge PR",
     ):
         step = workflow.split(f"      - name: {name}\n", 1)[1].split("      - name:", 1)[0]
-        assert "if: inputs.dry_run != true" in step, name
-    assert "push: ${{ inputs.dry_run != true }}" in workflow
-    assert "load: ${{ inputs.dry_run == true }}" in workflow
+        assert "if: (inputs.dry_run != true && github.event_name != 'pull_request')" in step, name
+    assert (
+        "push: ${{ (inputs.dry_run != true && github.event_name != 'pull_request') }}" in workflow
+    )
+    assert (
+        "load: ${{ (inputs.dry_run == true || github.event_name == 'pull_request') }}" in workflow
+    )
     sarif = workflow.split("      - name: Upload Trivy SARIF\n", 1)[1].split("      - name:", 1)[0]
     assert "inputs.dry_run != true" in sarif
     # The gate chain still runs: Trivy scans, SBOM generation, measurement,
