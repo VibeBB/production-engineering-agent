@@ -208,7 +208,10 @@ def _write_real_records(root: Path) -> tuple[str, str]:
 
 def _call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
     return asyncio.run(
-        cast(Coroutine[Any, Any, types.CallToolResult], mcp_server.call_tool(name, arguments))
+        cast(
+            Coroutine[Any, Any, types.CallToolResult],
+            mcp_server.call_tool(None, types.CallToolRequestParams(name=name, arguments=arguments)),
+        )
     )
 
 
@@ -573,18 +576,18 @@ def test_ux_inbox_respond_cli_and_mcp_entrypoints(
 
     _write_request(tmp_path, "mcp-request")
     inbox_result = _call_tool("prodeng_ux_inbox", {})
-    assert inbox_result.isError is False
+    assert inbox_result.is_error is False
     assert any(item["id"] == "mcp-request" for item in _tool_json(inbox_result)["requests"])
     respond_result = _call_tool(
         "prodeng_ux_respond",
         {"request": "mcp-request", "status": "accepted"},
     )
-    assert respond_result.isError is False
+    assert respond_result.is_error is False
     assert _tool_json(respond_result)["response"]["request"] == "mcp-request"
 
     tools = {tool.name: tool for tool in mcp_server.tool_specs()}
     assert tools["prodeng_ux_inbox"].annotations is not None
-    assert tools["prodeng_ux_inbox"].annotations.readOnlyHint is True
+    assert tools["prodeng_ux_inbox"].annotations.read_only_hint is True
     assert tools["prodeng_ux_respond"].annotations is not None
-    assert tools["prodeng_ux_respond"].annotations.readOnlyHint is False
-    assert tools["prodeng_ux_respond"].inputSchema == UxRespondInput.model_json_schema()
+    assert tools["prodeng_ux_respond"].annotations.read_only_hint is False
+    assert tools["prodeng_ux_respond"].input_schema == UxRespondInput.model_json_schema()

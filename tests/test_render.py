@@ -37,7 +37,10 @@ def _contract_copy(directory: Path) -> Path:
 
 def _mcp_call(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
     return asyncio.run(
-        cast(Coroutine[Any, Any, types.CallToolResult], mcp_server.call_tool(name, arguments))
+        cast(
+            Coroutine[Any, Any, types.CallToolResult],
+            mcp_server.call_tool(None, types.CallToolRequestParams(name=name, arguments=arguments)),
+        )
     )
 
 
@@ -185,13 +188,13 @@ def test_render_tool_returns_inline_images_and_author_can_disable_them(
         "prodeng_render",
         {"contract_path": str(contract_path), "out_dir": str(tmp_path / "render")},
     )
-    assert render_result.isError is False
+    assert render_result.is_error is False
     assert isinstance(render_result.content[0], types.TextContent)
     render_payload = json.loads(render_result.content[0].text)
     image_blocks = [item for item in render_result.content if isinstance(item, types.ImageContent)]
     assert len(image_blocks) == len(render_payload["vision_review_required"])
     assert image_blocks
-    assert all(item.mimeType == "image/png" for item in image_blocks)
+    assert all(item.mime_type == "image/png" for item in image_blocks)
 
     author_result = _mcp_call(
         "prodeng_author",
@@ -201,7 +204,7 @@ def test_render_tool_returns_inline_images_and_author_can_disable_them(
             "render": False,
         },
     )
-    assert author_result.isError is False
+    assert author_result.is_error is False
     assert len(author_result.content) == 1
     assert isinstance(author_result.content[0], types.TextContent)
 

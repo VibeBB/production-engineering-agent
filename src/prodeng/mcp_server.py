@@ -8,8 +8,9 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+from jsonschema import Draft202012Validator
 from mcp import types
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.server.lowlevel import NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
@@ -46,8 +47,6 @@ from .responses import liaison_status
 from .sampling import LEVELS, sampling_plan
 from .ux_liaison import UxRespondInput, ux_inbox, ux_respond
 from .workspace import workspace_path
-
-server = Server(f"prodeng-mcp/{__version__}")
 
 _SCHEMAS: dict[str, dict[str, Any]] = {
     "prodeng_record_decision": DecisionInput.model_json_schema(),
@@ -264,13 +263,13 @@ def tool_specs() -> list[types.Tool]:
         types.Tool(
             name=name,
             description=_TOOL_DESCRIPTIONS[name],
-            inputSchema=schema,
+            input_schema=schema,
             annotations=types.ToolAnnotations(
                 title=name,
-                readOnlyHint=name not in _WRITE_TOOLS,
-                destructiveHint=False,
-                idempotentHint=True,
-                openWorldHint=False,
+                read_only_hint=name not in _WRITE_TOOLS,
+                destructive_hint=False,
+                idempotent_hint=True,
+                open_world_hint=False,
             ),
         )
         for name, schema in _SCHEMAS.items()
@@ -287,7 +286,7 @@ def image_content(path: Path) -> types.ImageContent | None:
     return types.ImageContent(
         type="image",
         data=base64.b64encode(path.read_bytes()).decode("ascii"),
-        mimeType="image/png",
+        mime_type="image/png",
     )
 
 
@@ -484,13 +483,32 @@ async def dispatch_tool(name: str, arguments: dict[str, Any]) -> dict[str, objec
     return {"verdict": "fail", "detail": f"unknown tool {name}"}
 
 
-@server.list_tools()
-async def list_tools() -> list[types.Tool]:
-    return tool_specs()
+async def list_tools(
+    ctx: ServerRequestContext | None, params: types.PaginatedRequestParams | None
+) -> types.ListToolsResult:
+    return types.ListToolsResult(tools=tool_specs())
 
 
-@server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
+async def call_tool(
+    ctx: ServerRequestContext | None, params: types.CallToolRequestParams
+) -> types.CallToolResult:
+    name, arguments = params.name, params.arguments or {}
+    spec = next((tool for tool in tool_specs() if tool.name == name), None)
+    if spec is not None:
+        errors = sorted(
+            Draft202012Validator(spec.input_schema).iter_errors(  # pyright: ignore[reportUnknownMemberType]
+                arguments
+            ),
+            key=lambda error: list(error.absolute_path),
+        )
+        if errors:
+            first = errors[0]
+            key = ".".join(str(part) for part in first.absolute_path)
+            message = first.message if not key else f"'{key}': {first.message}"
+            return types.CallToolResult(
+                content=[types.TextContent(type="text", text=f"Input validation error: {message}")],
+                is_error=True,
+            )
     is_error = name not in _SCHEMAS
     if is_error:
         payload: object = {"verdict": "fail", "detail": f"unknown tool {name}"}
@@ -513,8 +531,11 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResul
                         content.append(image)
     return types.CallToolResult(
         content=content,
-        isError=is_error,
+        is_error=is_error,
     )
+
+
+server = Server(f"prodeng-mcp/{__version__}", on_list_tools=list_tools, on_call_tool=call_tool)
 
 
 async def _run() -> None:

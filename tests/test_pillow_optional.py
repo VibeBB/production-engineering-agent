@@ -24,7 +24,10 @@ def _copy_example(directory: Path) -> Path:
 
 def _call_tool(mcp_server: Any, name: str, arguments: dict[str, Any]) -> types.CallToolResult:
     return asyncio.run(
-        cast(Coroutine[Any, Any, types.CallToolResult], mcp_server.call_tool(name, arguments))
+        cast(
+            Coroutine[Any, Any, types.CallToolResult],
+            mcp_server.call_tool(None, types.CallToolRequestParams(name=name, arguments=arguments)),
+        )
     )
 
 
@@ -65,7 +68,7 @@ def test_cli_and_mcp_remain_usable_without_pillow(
             "render": True,
         },
     )
-    assert mcp_author.isError is False
+    assert mcp_author.is_error is False
     mcp_author_payload = json.loads(_text(mcp_author))
     assert mcp_author_payload["verdict"] == "pass"
     assert unavailable_text in mcp_author_payload["render_skipped"]
@@ -80,7 +83,7 @@ def test_cli_and_mcp_remain_usable_without_pillow(
         "prodeng_render",
         {"contract_path": str(contract_path), "out_dir": str(workspace / "mcp-render")},
     )
-    assert mcp_render.isError is True
+    assert mcp_render.is_error is True
     assert unavailable_text in _text(mcp_render)
 
     cli_author_dir = workspace / "cli-author"
