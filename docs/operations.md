@@ -5,6 +5,24 @@ retains the image, launcher, release, and troubleshooting procedures; the
 new [Development](development.md) and [Commands](commands.md) guides cover
 verification and user-facing entry points.
 
+## 2026-11-14 dependency sweep (sdk 1.62.0, mcp 2.3.0, uv 0.13.8, hypothesis 6.170.15)
+
+| Component | From -> to | Changelog review decision |
+| --- | --- | --- |
+| openhands-sdk / openhands-tools | `==1.59.0` -> `==1.62.0` | Adopted; see [SDK v1.62.0 evaluation](research/sdk-v1.62.0-feature-evaluation.md). |
+| mcp | `>=1.29,<2` -> `>=2` (2.3.0) | Adopted (forced: SDK 1.62.0 requires fastmcp>=4, which pins mcp>=2); `mcp_server.py` migrated to the v2 constructor API. |
+| uv | `==0.13.6` -> `==0.13.8` | Adopted. |
+| ruff | `0.17.x` -> `0.17.5` (lock) | Adopted. |
+| hypothesis | `6.170.13` -> `6.170.15` (lock) | Adopted — bug-fix releases only. |
+| pydantic | -> `2.14.3` (lock) | Adopted. |
+| trivy | `v0.76.1` -> `v0.76.2` | Adopted. |
+| codeql-action | v4.39.1 -> v4.39.3 | Adopted. |
+| harden-runner | v2.22.3 -> v2.22.4 | Adopted. |
+| docker/login-action | v4.7.0 -> v4.8.0 | Adopted. |
+| zizmor | `1.31.1` -> `1.32.0` | Adopted (workflow + lint_workflows_local.sh wheel/sha256). |
+
+Deferrals: mcp entry removed (adopted); Python 3.15 default remains.
+
 ## 2026-10-29 dependency sweep (sdk 1.59.0, uv 0.13.6, hypothesis 6.170.13)
 
 | Component | From -> to | Changelog review decision |

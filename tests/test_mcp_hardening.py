@@ -15,7 +15,10 @@ from prodeng.records import DecisionInput, StageImpressionInput, VisionReviewInp
 
 def _call_tool(name: str, arguments: dict[str, Any]) -> types.CallToolResult:
     return asyncio.run(
-        cast(Coroutine[Any, Any, types.CallToolResult], mcp_server.call_tool(name, arguments))
+        cast(
+            Coroutine[Any, Any, types.CallToolResult],
+            mcp_server.call_tool(None, types.CallToolRequestParams(name=name, arguments=arguments)),
+        )
     )
 
 
@@ -29,7 +32,7 @@ def _text(result: types.CallToolResult) -> str:
 def test_unknown_mcp_tool_returns_error_result() -> None:
     result = _call_tool("unknown_tool", {})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert _text(result) == json.dumps(
         {"verdict": "fail", "detail": "unknown tool unknown_tool"},
         indent=2,
@@ -48,26 +51,26 @@ def test_records_mcp_tools_have_expected_read_write_hints() -> None:
     assert impression_annotations is not None
     assert review_annotations is not None
     assert status_annotations is not None
-    assert decision_annotations.readOnlyHint is False
-    assert impression_annotations.readOnlyHint is False
-    assert review_annotations.readOnlyHint is False
-    assert status_annotations.readOnlyHint is True
-    assert tools["prodeng_record_decision"].inputSchema == DecisionInput.model_json_schema()
+    assert decision_annotations.read_only_hint is False
+    assert impression_annotations.read_only_hint is False
+    assert review_annotations.read_only_hint is False
+    assert status_annotations.read_only_hint is True
+    assert tools["prodeng_record_decision"].input_schema == DecisionInput.model_json_schema()
     assert (
-        tools["prodeng_record_impression"].inputSchema == StageImpressionInput.model_json_schema()
+        tools["prodeng_record_impression"].input_schema == StageImpressionInput.model_json_schema()
     )
     assert (
-        tools["prodeng_record_vision_review"].inputSchema == VisionReviewInput.model_json_schema()
+        tools["prodeng_record_vision_review"].input_schema == VisionReviewInput.model_json_schema()
     )
 
 
 def test_render_mcp_tools_are_writable_and_author_renders_by_default() -> None:
     tools = {tool.name: tool for tool in mcp_server.tool_specs()}
     assert tools["prodeng_render"].annotations is not None
-    assert tools["prodeng_render"].annotations.readOnlyHint is False
+    assert tools["prodeng_render"].annotations.read_only_hint is False
     assert tools["prodeng_author"].annotations is not None
-    assert tools["prodeng_author"].annotations.readOnlyHint is False
-    assert tools["prodeng_author"].inputSchema["properties"]["render"]["default"] is True
+    assert tools["prodeng_author"].annotations.read_only_hint is False
+    assert tools["prodeng_author"].input_schema["properties"]["render"]["default"] is True
 
 
 def test_raised_mcp_handler_returns_error_result(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -77,7 +80,7 @@ def test_raised_mcp_handler_returns_error_result(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(mcp_server, "dispatch_tool", fail)
     result = _call_tool("prodeng_doctor", {})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert _text(result) == json.dumps(
         {"verdict": "fail", "detail": "prodeng_doctor error: handler exploded"},
         indent=2,
@@ -92,7 +95,7 @@ def test_gate_failure_payload_is_not_an_mcp_error(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(mcp_server, "dispatch_tool", gate_failure)
     result = _call_tool("prodeng_gates", {"contract_path": "contract.json"})
 
-    assert result.isError is False
+    assert result.is_error is False
     assert json.loads(_text(result)) == {"verdict": "fail", "detail": "gate failed"}
 
 
@@ -109,7 +112,7 @@ def test_mcp_paths_resolve_relative_to_workspace(
     monkeypatch.setattr(mcp_server, "dispatch_tool", capture)
     result = _call_tool("prodeng_validate", {"contract_path": "contract.json"})
 
-    assert result.isError is False
+    assert result.is_error is False
     assert captured["contract_path"] == str(tmp_path / "contract.json")
 
 
@@ -121,7 +124,7 @@ def test_mcp_rejects_parent_traversal(
 
     result = _call_tool("prodeng_validate", {"contract_path": path})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "path is outside the workspace" in _text(result)
 
 
@@ -134,7 +137,7 @@ def test_mcp_rejects_absolute_path_outside_workspace(
         "prodeng_validate", {"contract_path": str(tmp_path.parent / "outside.json")}
     )
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "path is outside the workspace" in _text(result)
 
 
@@ -148,5 +151,5 @@ def test_mcp_rejects_symlinked_workspace_component(
 
     result = _call_tool("prodeng_validate", {"contract_path": "link/contract.json"})
 
-    assert result.isError is True
+    assert result.is_error is True
     assert "workspace path contains a symlink" in _text(result)
