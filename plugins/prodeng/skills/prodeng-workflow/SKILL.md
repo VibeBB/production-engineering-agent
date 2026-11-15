@@ -1,7 +1,7 @@
 ---
 name: prodeng-workflow
 description: Run the deterministic production-engineering workflow from requirement intake through gates, projections, and sibling requests.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - production engineering

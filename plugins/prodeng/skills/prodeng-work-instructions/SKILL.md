@@ -1,7 +1,7 @@
 ---
 name: prodeng-work-instructions
 description: Write safe, traceable production work instructions in the Toyota Training Within Industry Job Instruction format.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - work instruction

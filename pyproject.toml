@@ -1,6 +1,6 @@
 [project]
 name = "production-engineering-agent"
-version = "0.1.0"
+version = "1.0.0"
 description = "Deterministic production engineering plans, gates, projections, and sibling requests"
 license = "BSD-3-Clause"
 requires-python = ">=3.12"

@@ -1,7 +1,7 @@
 ---
 name: prodeng-dfx
 description: Review circuit, mechanical, and wire artifacts for manufacturability, assembly, and testability and derive advisory sibling requests.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - DFM
