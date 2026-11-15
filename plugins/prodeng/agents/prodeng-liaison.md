@@ -34,6 +34,13 @@ hooks:
         - type: command
           name: safety-rail
           command: 'p=$(for c in  "${PRODENG_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
+  stop:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" stop"
+
 max_iteration_per_run: 30
 max_budget_per_run: 3.0
 permission_mode: never_confirm

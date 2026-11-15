@@ -42,6 +42,13 @@ hooks:
         - type: command
           name: record-image-observation
           command: 'p=$(for c in  "${PRODENG_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/hooks/scripts/record_image_observation.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/record_image_observation.py"'
+  stop:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" stop"
+
 max_iteration_per_run: 20
 max_budget_per_run: 1.5
 when_to_use_examples:
