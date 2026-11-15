@@ -17,6 +17,12 @@ mcp_config:
       - -c
       - 'p=$(for c in  "${PRODENG_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/scripts/prodeng_launcher.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "prodeng plugin root unresolved" >&2; exit 2; }; exec python3 "$p/scripts/prodeng_launcher.py" mcp_server'
 hooks:
+  session_start:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" record-context"
   pre_tool_use:
     - matcher: file_editor|apply_patch|terminal
       hooks:
@@ -28,6 +34,13 @@ hooks:
         - type: command
           name: safety-rail
           command: 'p=$(for c in  "${PRODENG_PLUGIN_ROOT:-}" "${PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng" "${HOME:-}/.agents/plugins/prodeng" "${HOME:-}/.openhands/plugins/installed/prodeng"; do [ -f "$c/hooks/scripts/safety_rail.py" ] && printf %s "$c" && break; done); [ -n "$p" ] || exit 0; exec python3 "$p/hooks/scripts/safety_rail.py"'
+  stop:
+    - matcher: "*"
+      hooks:
+        - type: command
+          name: require-records
+          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" stop"
+
 max_iteration_per_run: 40
 max_budget_per_run: 3.0
 permission_mode: never_confirm
@@ -103,3 +116,11 @@ operator or inspector can act on the sheet. Review every intake photo in
 `intake/attachments/` with `intake-photo` and each sibling circuit/PCB/schematic
 or mechanical drawing with `sister-render`; do not treat the generated file
 or its JSON index as a substitute for visual inspection.
+
+
+Use the native `session_id` supplied by your SessionStart record context for VRP
+writes. For an independent blind/tiebreak review, pass `primary_event_id` from
+the delegation brief; the writer binds it to the same image path and SHA-256.
+When delegating, provide only that opaque ID, the image identity and task facts;
+never disclose the earlier review prose. Each reviewer keeps its own native
+session ID, and the primary's session performs reconciliation.
