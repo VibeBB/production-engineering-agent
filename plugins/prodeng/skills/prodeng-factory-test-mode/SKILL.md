@@ -1,7 +1,7 @@
 ---
 name: prodeng-factory-test-mode
 description: Specify a guarded, time-bounded, field-locked factory-test-mode protocol and its firmware/circuit ownership.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - factory test mode

@@ -1,7 +1,7 @@
 ---
 name: prodeng-liaison
 description: Answer UX-creator requests and reconcile versioned sibling responses without changing gate verdicts.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - sibling request

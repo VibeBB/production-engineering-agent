@@ -1,7 +1,7 @@
 ---
 name: prodeng-inspection
 description: Classify product characteristics, design inspection coverage, and use ISO 2859-1 sampling conservatively.
-version: 0.1.0
+version: 1.0.0
 license: BSD-3-Clause
 triggers:
   - inspection plan
