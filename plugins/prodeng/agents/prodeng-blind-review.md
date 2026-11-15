@@ -19,7 +19,7 @@ hooks:
       hooks:
         - type: command
           name: require-records
-          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" session-start"
+          command: "p=$(for c in  \"${PRODENG_PLUGIN_ROOT:-}\" \"${PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/prodeng\" \"${HOME:-}/.agents/plugins/prodeng\" \"${HOME:-}/.openhands/plugins/installed/prodeng\" \"${HOME:-}/plugins/installed/prodeng\" \"${OH_PERSISTENCE_DIR:-/nonexistent}/plugins/installed/prodeng\"; do [ -f \"$c/hooks/scripts/require_records.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || exit 0; exec python3 \"$p/hooks/scripts/require_records.py\" record-context"
   pre_tool_use:
     - matcher: file_editor|apply_patch|terminal
       hooks:
