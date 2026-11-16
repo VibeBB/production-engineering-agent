@@ -23,6 +23,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from _records import capture_image_delivery
+
 EVENTS_ENV = "PRODENG_IMAGE_OBSERVATIONS"
 EVENTS_RELATIVE_PATH = Path("observations/prodeng/image-observations.jsonl")
 OBSERVED_TOOLS = {
@@ -136,6 +138,14 @@ def main() -> int:
         if "error" in response or response.get("is_error"):
             return 0
     base = _project_dir(cast(dict[str, Any], payload))
+    try:
+        if capture_image_delivery(
+            cast(dict[str, Any], payload), base, _events_path(cast(dict[str, Any], payload))
+        ):
+            return 0
+    except (OSError, UnicodeError) as exc:
+        print(f"image delivery log unavailable: {exc}", file=sys.stderr)
+        return 0
     paths = _image_paths(cast(dict[str, Any], payload), base)
     if not paths:
         return 0
