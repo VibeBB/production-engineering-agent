@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, cast
 
@@ -15,7 +16,7 @@ from mcp.server.lowlevel import NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 
-from . import __version__
+from . import __version__, _vrp
 from ._pillow import render_unavailable_reason
 from .contract import contract_json, load_contract
 from .doctor import run_doctor
@@ -283,10 +284,12 @@ def _default_out(contract_path: Path, product_name: str) -> Path:
 def image_content(path: Path) -> types.ImageContent | None:
     if path.suffix.lower() != ".png" or not path.is_file():
         return None
+    blob = path.read_bytes()
     return types.ImageContent(
         type="image",
-        data=base64.b64encode(path.read_bytes()).decode("ascii"),
+        data=base64.b64encode(blob).decode("ascii"),
         mime_type="image/png",
+        _meta=_vrp.rendered_image_metadata(path, blob, "prodeng"),
     )
 
 
@@ -506,7 +509,9 @@ async def call_tool(
             key = ".".join(str(part) for part in first.absolute_path)
             message = first.message if not key else f"'{key}': {first.message}"
             return types.CallToolResult(
-                content=[types.TextContent(type="text", text=f"Input validation error: {message}")],
+                content=_with_image_metadata(
+                    [types.TextContent(type="text", text=f"Input validation error: {message}")]
+                ),
                 is_error=True,
             )
     is_error = name not in _SCHEMAS
@@ -530,7 +535,7 @@ async def call_tool(
                     if image is not None:
                         content.append(image)
     return types.CallToolResult(
-        content=content,
+        content=_with_image_metadata(content),
         is_error=is_error,
     )
 
@@ -556,6 +561,33 @@ async def _run() -> None:
 
 def main() -> None:
     asyncio.run(_run())
+
+
+def _with_image_metadata(content: Sequence[types.ContentBlock]) -> list[types.ContentBlock]:
+    """Keep producer identity in text because SDK image conversion can omit metadata."""
+    inline_images: list[dict[str, object]] = []
+    for block in content:
+        if not isinstance(block, types.ImageContent):
+            continue
+        identity: object = (block.meta or {}).get("vibebb_image_identity")
+        if not isinstance(identity, dict):
+            continue
+        claim = cast(dict[str, object], identity)
+        inline_images.append(
+            {
+                "path": claim.get("path"),
+                "sha256": claim.get("sha256"),
+                "attached": True,
+                "identity_status": "bound",
+                "image_identity": claim,
+            }
+        )
+    if not inline_images:
+        return list(content)
+    return [
+        *content,
+        types.TextContent(type="text", text=json.dumps({"inline_images": inline_images})),
+    ]
 
 
 if __name__ == "__main__":
