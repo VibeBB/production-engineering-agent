@@ -53,6 +53,7 @@
 - [SDK v1.55.1 feature evaluation](research/sdk-v1.55.1-feature-evaluation.md):
 - [SDK v1.59.0 feature evaluation](research/sdk-v1.59.0-feature-evaluation.md):
 - [SDK v1.62.0 feature evaluation](research/sdk-v1.62.0-feature-evaluation.md):
+- [SDK v1.63.1 feature evaluation](research/sdk-v1.63.1-feature-evaluation.md):
   Changelog review for SDK 1.55.1 and uv 0.13.1.
 - [SDK v1.53.0 feature evaluation](research/sdk-v1.53.0-feature-evaluation.md):
   OpenHands SDK/tools adoption decisions.
