@@ -34,7 +34,7 @@ Primary sources:
 | fix(sdk): keep one copy of a plugin's hooks when it is loaded twice (#5815) | adopted implicitly | Hooks dedupe for double-loaded plugins; the shared hook contracts stay single-registered. |
 | fix: inherit parent secret sources in task sub-agents (#6757) | adopted implicitly | Task-delegated sub-agents (all VibeBB review/design delegates) now inherit the parent's secret sources; matches how the plugins expect secrets to flow. |
 | fix(sdk): consolidate capability resolution and reject silent image loss (#6040) + deepseek-v4.1-flash vision detection + DeepSeek image-loss bad-request | adopted implicitly | Vision-capability resolution hardened; VibeBB vision-review paths can no longer silently drop images. |
-| feat: enable MCP protocol auto negotiation (#6794) | adopted implicitly | The repo's stdio MCP server now negotiates protocol versions automatically; no code change needed. |
+| feat: enable MCP protocol auto negotiation (#6794) | adopted implicitly | SDK-side MCP clients now default protocol negotiation to `auto`; the plugin's stdio server still echoes the client's `protocolVersion` — no code change. |
 | fix(task): key the task tool examples by the built-in agents' names | adopted implicitly | Task-tool guidance now matches delegated agent names. |
 | fix(conversation): let run() resume a detector-STUCK conversation + persist state while a step waits on the model | adopted implicitly | Resume reliability for long-running plugin sessions. |
 | Secret masking in thinking_blocks + signature preservation + keep the source's cipher and secrets on a forked conversation | adopted implicitly | Secret-handling hardening; no plugin action. |
@@ -57,7 +57,7 @@ Primary sources:
 
 | Component | From -> to | Decision | Evaluation |
 | --- | --- | --- | --- |
-| uv | 0.13.8 -> 0.13.9 | adopted | `required-version`, Dockerfile `UV_VERSION`/`UV_DIGEST`, setup-uv `version:` input. Changelog reviewed: PEP 832 support (informational), lockfile size reduction (benefits `uv.lock` size), wheel name-mismatch rejection (stricter — safe). |
+| uv | 0.13.8 -> 0.13.9 | adopted | `required-version` and Dockerfile `UV_VERSION`/`UV_DIGEST`; setup-uv reads `required-version` (this repo sets no `version:` input). Changelog reviewed: PEP 832 support (informational), lockfile size reduction (benefits `uv.lock` size), wheel name-mismatch rejection (stricter — safe). |
 | ruff | lock drift -> 0.17.5/0.17.6 | adopted implicitly | Bug-fix releases incl. a preview TC010 fix; no config change. |
 | pydantic | lock drift -> 2.14.4 | adopted implicitly | jiter 0.19.0 bump + JSON Schema fixes. |
 | filelock override | `filelock>=4.2.1` -> dropped | adopted (removal) | The override existed only to outrun litellm<1.108's `filelock<4.0` cap for CVE-2026-112940; litellm 1.108.x allows `<5` and the lock resolves 4.2.12. |
