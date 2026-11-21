@@ -407,6 +407,13 @@ here so audits do not re-flag them:
   it, while push, `:latest` promotion, attestations, the code-scanning
   SARIF upload, and the digest-lock PR are skipped.
 
+
+- 2026-11-21: Dependency sweep. sdk/tools `==1.62.0` -> `==1.63.1`, uv `==0.13.8`
+  -> `==0.13.9`, harden-runner v2.23.0, setup-uv v10.4.0, codeql-action
+  v4.39.4, dependency-review-action v5.0.1, scorecard-action v2.6.0, hypothesis 6.170.17.
+  Full changelog review:
+  [SDK v1.63.1 feature evaluation](research/sdk-v1.63.1-feature-evaluation.md).
+
 ## Dependency update sweep procedure
 
 When sweeping dependencies to latest releases:
