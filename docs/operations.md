@@ -337,12 +337,13 @@ they are recorded here so they survive repository migrations.
 - **Actions creating pull requests:** the digest-lock and version-bump bot
   pull requests need Settings → Actions → General → "Allow GitHub Actions
   to create and approve pull requests".
-- **Required review / code owners:** `.github/CODEOWNERS` names the owner
-  of `.github/workflows/`, `docker/`, and `plugins/prodeng/`, but nothing
-  enforces it until the main ruleset requires approvals (and, optionally,
-  code-owner review). Enabling approvals also gates the
-  `bot/update-image-digests-*` auto-merge loop: give the automation
-  identity a ruleset bypass, or expect to merge each lock PR by hand.
+- **Required review / code owners:** Require code-owner review in the
+  `main` ruleset. `.github/CODEOWNERS` assigns `@uist1idrju3i` to
+  `/.github/` (including workflows and CODEOWNERS itself),
+  `/scripts/release_bump.sh`, `/scripts/publish_image_pin_pr.sh`, `docker/`,
+  and `plugins/prodeng/`. Bot digest-lock and version-bump PRs that touch
+  owned paths wait for manual approval from that owner. The owner's bypass
+  applies only to pull requests; bots have no bypass.
 - **Branch protection:** Scorecard reports partial branch protection; the
   required-check ruleset is the enforcement point for every merge path
   above.
@@ -383,16 +384,11 @@ failure — the leg does not silently revert to advisory.
 
 ## Settings-level posture (recorded decisions)
 
-The following live in repository Settings rather than code; they are
-intentional for the solo-maintainer bot-merge workflow and are recorded
-here so audits do not re-flag them:
+Configure the following in repository Settings rather than in workflows:
 
-- Branch protection does not require approving reviews, code owners, or
-  "apply to administrators": every merge is performed by automation
-  (digest-lock, version-bump, and Devin PRs), so required approvers would
-  only add friction to a pipeline that already gates on the required-check
-  set. OpenSSF Scorecard reports this as Branch-Protection 3 and
-  Code-Review 0; that is the recorded trade-off, not an oversight.
+- Auto-merge waits for required checks and any required code-owner
+  approval. See [repository settings prerequisites](#repository-settings-prerequisites)
+  for the owned paths and review policy.
 - The Dependency graph must stay enabled for `dependency-review.yml` to
   evaluate pull requests.
 - `release.yml` is dispatch-only; run it once with `dry_run=true` before
