@@ -2,6 +2,8 @@
 # the tools image, and the shipped plugin. Enforcement (required approvals
 # and code-owner review) lives in the repository ruleset — see
 # docs/operations.md for the settings this file assumes.
-.github/workflows/ @uist1idrju3i
+/.github/ @uist1idrju3i
+/scripts/release_bump.sh @uist1idrju3i
+/scripts/publish_image_pin_pr.sh @uist1idrju3i
 docker/ @uist1idrju3i
 plugins/prodeng/ @uist1idrju3i
